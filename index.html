@@ -121,6 +121,12 @@
   td:first-child{text-align:left;font-family:var(--ui)}
   tr:last-child td{border-bottom:none}
   td.pos{color:var(--pos)} td.neg{color:var(--neg)}
+  td.act{width:34px;padding-right:0}
+  .row-del{width:28px;height:28px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:var(--faint);opacity:0;transition:.12s}
+  .row-del svg{width:15px;height:15px}
+  tr:hover .row-del{opacity:1}
+  .row-del:hover{background:var(--neg-soft);color:var(--neg)}
+  @media(hover:none){.row-del{opacity:1}}
 
   /* asset rows */
   .asset-row{display:flex;align-items:center;gap:16px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:.12s;background:var(--surface)}
@@ -139,6 +145,8 @@
   .btn:hover{border-color:var(--ink)}
   .btn.pr{background:var(--accent);color:#fff;border-color:var(--accent)}
   .btn.pr:hover{background:var(--accent-2)}
+  .btn.danger{background:var(--neg);color:#fff;border-color:var(--neg)}
+  .btn.danger:hover{background:#a93a30;border-color:#a93a30}
   .btn svg{width:14px;height:14px}
 
   .empty{text-align:center;padding:46px 20px;color:var(--muted)}
@@ -526,9 +534,9 @@ function renderAsset(id){
   </div></div>
   <div class="card" style="margin-bottom:18px"><h3>Wartość w czasie</h3><div class="sub">&nbsp;</div>${lineChart(series,{})}</div>
   <div class="card"><h3>Historia wpisów</h3><div class="sub">${snaps.length} wpisów</div>
-    <table><thead><tr><th>Data</th><th>Wpłacone</th><th>Aktualny stan</th><th>Wzrost</th><th>Wzrost %</th></tr></thead><tbody>
+    <table><thead><tr><th>Data</th><th>Wpłacone</th><th>Aktualny stan</th><th>Wzrost</th><th>Wzrost %</th><th></th></tr></thead><tbody>
     ${snaps.slice().reverse().map(s=>{const g=s.value-s.invested,gp=s.invested?g/s.invested*100:0;
-      return `<tr><td>${fmtDate(s.date)}</td><td>${fmt(s.invested,true)}</td><td>${fmt(s.value,true)}</td><td class="${g>=0?'pos':'neg'}">${fmt(g,true)}</td><td class="${g>=0?'pos':'neg'}">${pct(gp)}</td></tr>`;}).join('')}
+      return `<tr><td>${fmtDate(s.date)}</td><td>${fmt(s.invested,true)}</td><td>${fmt(s.value,true)}</td><td class="${g>=0?'pos':'neg'}">${fmt(g,true)}</td><td class="${g>=0?'pos':'neg'}">${pct(gp)}</td><td class="act"><button class="row-del" data-action="delsnap" data-asset="${a.id}" data-date="${s.date}" title="Usuń wpis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg></button></td></tr>`;}).join('')}
     </tbody></table></div>`;
 }
 
@@ -586,9 +594,11 @@ function modalTargets(){
     <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savetargets">Zapisz</button></div>`);
 }
 
-/* ============================================================
-   EVENTS
-   ============================================================ */
+function modalDelSnap(assetId,date){
+  openModal(`<h3>Usunąć wpis?</h3>
+    <div style="color:var(--muted);font-size:13.5px;margin:-6px 0 4px">Wpis z dnia <b style="color:var(--ink)">${fmtDate(date)}</b> zostanie trwale usunięty. Tej operacji nie można cofnąć.</div>
+    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn danger" data-action="confirmdelsnap" data-asset="${assetId}" data-date="${date}">Usuń wpis</button></div>`);
+}
 document.addEventListener('click',async e=>{
   const tabBtn=e.target.closest('[data-tab]');
   if(tabBtn){ view={tab:tabBtn.dataset.tab,asset:null}; render(); return; }
@@ -601,6 +611,12 @@ document.addEventListener('click',async e=>{
   if(a==='addasset') modalAddAsset(act.dataset.cat);
   if(a==='addcat') modalAddCat();
   if(a==='addsnap') modalAddSnap(act.dataset.asset);
+  if(a==='delsnap') modalDelSnap(act.dataset.asset,act.dataset.date);
+  if(a==='confirmdelsnap'){
+    const asset=DATA.assets.find(x=>x.id===act.dataset.asset);
+    asset.snapshots=asset.snapshots.filter(s=>s.date!==act.dataset.date);
+    await save(); closeModal(); render(); toast('Usunięto wpis');
+  }
   if(a==='targets') modalTargets();
   if(a==='saveasset'){
     const name=document.getElementById('m-name').value.trim(); if(!name) return toast('Podaj nazwę');
