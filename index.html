@@ -1,16 +1,20 @@
-<!-- Portfel — osobisty tracker inwestycji · Supabase (logowanie + baza w chmurze) -->
+<!doctype html>
+<html lang="pl">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Portfel</title>
+<title>Byk — majątek i inwestycje</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#F2F3F0; --surface:#FFFFFF; --ink:#15211C; --muted:#6E7873; --faint:#A0A8A3;
-    --line:#E6E8E2; --line-2:#D7DAD3; --accent:#12463A; --accent-2:#1C6B54; --accent-soft:#E7EFEA;
-    --pos:#1C7A4D; --neg:#BB4338; --pos-soft:#E7F1EB; --neg-soft:#F7E8E6;
-    --r:14px;
+    --bg:#0E1311; --bg-2:#131A17; --surface:#161E1A; --surface-2:#1B241F;
+    --line:#26312B; --line-2:#33413A; --ink:#ECEAE0; --muted:#93A099; --faint:#5F6E66;
+    --gold:#C9A24B; --gold-2:#E0BC64; --gold-soft:#2A2718;
+    --pos:#4FB07A; --neg:#E0655A; --pos-soft:#16281E; --neg-soft:#2A1917;
+    --r:16px;
+    --disp:'Bricolage Grotesque',system-ui,sans-serif;
     --ui:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
     --num:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
   }
@@ -19,174 +23,222 @@
   body{background:var(--bg);color:var(--ink);font-family:var(--ui);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
   .num{font-family:var(--num);font-feature-settings:"tnum" 1;letter-spacing:-.01em}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-  input,select{font-family:inherit;font-size:14px}
+  input,select{font-family:inherit;font-size:14px;color:var(--ink)}
+  a{color:var(--gold-2)}
+  ::selection{background:var(--gold);color:#111}
 
-  /* ---------- Lock / login screen ---------- */
-  #lock{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50}
-  .lock-card{width:min(360px,92vw);text-align:center}
-  .lock-mark{width:42px;height:42px;margin:0 auto 22px;border-radius:11px;background:var(--accent);display:flex;align-items:center;justify-content:center}
-  .lock-mark svg{width:22px;height:22px}
-  .lock-card h1{font-size:19px;font-weight:600;margin:0 0 6px;letter-spacing:-.02em}
+  /* ---------- Login ---------- */
+  #lock{position:fixed;inset:0;background:radial-gradient(1200px 600px at 50% -10%,#17211C 0%,var(--bg) 60%);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+  .lock-card{width:min(370px,94vw);text-align:center}
+  .lock-mark{width:52px;height:52px;margin:0 auto 20px;border-radius:14px;background:linear-gradient(160deg,var(--gold-2),var(--gold));display:flex;align-items:center;justify-content:center;box-shadow:0 8px 30px rgba(201,162,75,.25)}
+  .lock-mark svg{width:30px;height:30px}
+  .lock-card h1{font-family:var(--disp);font-size:26px;font-weight:600;margin:0 0 6px;letter-spacing:-.02em}
   .lock-card p{color:var(--muted);margin:0 0 26px;font-size:13px}
-
   .auth-form{display:flex;flex-direction:column;gap:11px;text-align:left}
-  .auth-form input{width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#fff;outline:none;font-size:14px;transition:.12s}
-  .auth-form input:focus{border-color:var(--accent)}
-  .auth-btn{justify-content:center;width:100%;padding:12px;margin-top:2px;font-size:14px}
-  .auth-btn:disabled{opacity:.6;cursor:default}
+  .auth-form input{width:100%;padding:13px 15px;border:1px solid var(--line-2);border-radius:11px;background:var(--surface);outline:none;font-size:14px;transition:.12s}
+  .auth-form input:focus{border-color:var(--gold)}
+  .auth-btn{justify-content:center;width:100%;padding:13px;margin-top:2px;font-size:14.5px}
+  .auth-btn:disabled{opacity:.55;cursor:default}
   .auth-toggle{color:var(--muted);font-size:12.5px;margin-top:8px;text-align:center;width:100%}
-  .auth-toggle:hover{color:var(--accent)}
-  .lock-hint{min-height:18px;font-size:12.5px;text-align:center;margin-top:2px}
+  .auth-toggle:hover{color:var(--gold-2)}
+  .lock-hint{min-height:18px;font-size:12.5px;text-align:center;margin-top:2px;color:var(--muted)}
   .lock-hint.err{color:var(--neg)} .lock-hint.ok{color:var(--pos)}
 
-  /* ---------- App shell ---------- */
+  /* ---------- Shell ---------- */
   #app{display:none;min-height:100%}
-  .shell{display:grid;grid-template-columns:228px 1fr;min-height:100vh}
-  .side{border-right:1px solid var(--line);padding:22px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:var(--bg)}
-  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px}
-  .brand .mk{width:26px;height:26px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center}
-  .brand .mk svg{width:15px;height:15px}
-  .brand b{font-weight:600;letter-spacing:-.02em;font-size:15px}
-  .nav{display:flex;flex-direction:column;gap:2px}
-  .nav button{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:9px;color:var(--muted);font-size:13.5px;font-weight:500;text-align:left;width:100%;transition:.12s}
-  .nav button .ic{width:17px;height:17px;flex:none;opacity:.85}
+  .shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+  .side{border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:var(--bg-2);overflow-y:auto}
+  .brand{display:flex;align-items:center;gap:11px;padding:4px 8px 20px}
+  .brand .mk{width:32px;height:32px;border-radius:9px;background:linear-gradient(160deg,var(--gold-2),var(--gold));display:flex;align-items:center;justify-content:center}
+  .brand .mk svg{width:19px;height:19px}
+  .brand b{font-family:var(--disp);font-weight:700;letter-spacing:-.02em;font-size:19px}
+  .navlabel{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);padding:14px 10px 7px;font-weight:600}
+  .nav{display:flex;flex-direction:column;gap:1px}
+  .nav button{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:10px;color:var(--muted);font-size:13.5px;font-weight:500;text-align:left;width:100%;transition:.12s}
+  .nav button .ic{width:17px;height:17px;flex:none;opacity:.9}
   .nav button:hover{background:var(--surface);color:var(--ink)}
-  .nav button.active{background:var(--accent);color:#fff}
-  .nav button.active .ic{opacity:1}
-  .nav .add{color:var(--faint);font-weight:500;margin-top:6px}
-  .nav .add:hover{color:var(--accent)}
-  .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:12px}
+  .nav button.active{background:var(--surface-2);color:var(--ink)}
+  .nav button.active .ic{color:var(--gold-2);opacity:1}
+  .pf-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--muted);font-size:13.5px;font-weight:500;width:100%;text-align:left;transition:.12s}
+  .pf-item:hover{background:var(--surface);color:var(--ink)}
+  .pf-item.active{background:var(--surface-2);color:var(--ink)}
+  .pf-badge{width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:var(--num);color:#0d0d0d}
+  .pf-item .val{margin-left:auto;font-family:var(--num);font-size:11px;color:var(--faint)}
+  .add-row{color:var(--faint);font-weight:500;margin-top:4px;font-size:12.5px}
+  .add-row:hover{color:var(--gold-2)}
+  .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:1px;border-top:1px solid var(--line);padding-top:10px;margin-top:16px}
   .side-foot .who{font-size:11px;color:var(--faint);padding:2px 10px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .side-foot button{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--faint);font-size:12.5px;width:100%;text-align:left}
-  .side-foot button:hover{color:var(--ink);background:var(--surface)}
 
-  .main{padding:26px clamp(20px,3.2vw,46px) 60px;max-width:1180px}
-  .topbar{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:26px;flex-wrap:wrap}
-  .topbar .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:5px}
-  .topbar h2{margin:0;font-size:25px;font-weight:600;letter-spacing:-.025em}
-  .fx{display:flex;gap:8px;flex-wrap:wrap}
-  .fx .chip{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:12px;color:var(--muted)}
-  .fx .chip b{font-family:var(--num);color:var(--ink);font-weight:500}
-  .fx .chip .dot{width:6px;height:6px;border-radius:50%;background:var(--pos)}
+  .main{padding:24px clamp(18px,3vw,44px) 70px;max-width:1240px;width:100%}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+  .topbar .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .topbar h2{margin:0;font-family:var(--disp);font-size:28px;font-weight:600;letter-spacing:-.02em}
+  .top-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
 
-  /* ---------- Ledger hero ---------- */
-  .ledger{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:26px 28px;margin-bottom:18px}
-  .ledger .row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:34px}
-  .ledger .cell{display:flex;flex-direction:column;gap:7px}
-  .ledger .cell .lbl{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
-  .ledger .cell .v{font-size:clamp(26px,3vw,38px);font-weight:500;letter-spacing:-.03em}
-  .ledger .cell.sub .v{font-size:clamp(18px,2vw,22px);color:var(--muted);font-weight:500}
-  .ledger .div{align-self:stretch;width:1px;background:var(--line);margin:2px 0}
-  .ledger .cell .v.pos{color:var(--pos)} .ledger .cell .v.neg{color:var(--neg)}
+  .live{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .live .dot{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+  .live.on .dot{background:var(--pos);box-shadow:0 0 0 0 rgba(79,176,122,.6);animation:pulse 1.6s infinite}
+  .live.err .dot{background:var(--neg)}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(79,176,122,.5)}70%{box-shadow:0 0 0 7px rgba(79,176,122,0)}100%{box-shadow:0 0 0 0 rgba(79,176,122,0)}}
+
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--line-2);background:var(--surface);transition:.12s;white-space:nowrap}
+  .btn:hover{border-color:var(--muted)}
+  .btn.pr{background:linear-gradient(160deg,var(--gold-2),var(--gold));color:#151208;border-color:transparent}
+  .btn.pr:hover{filter:brightness(1.06)}
+  .btn.danger{background:var(--neg);color:#fff;border-color:var(--neg)}
+  .btn.danger:hover{filter:brightness(1.06)}
+  .btn.ghost{background:none;border-color:var(--line)}
+  .btn svg{width:15px;height:15px}
+  .btn.sm{padding:6px 11px;font-size:12px}
+
+  /* hero ledger */
+  .ledger{background:linear-gradient(150deg,var(--surface-2),var(--surface));border:1px solid var(--line);border-radius:var(--r);padding:26px 28px;margin-bottom:18px;position:relative;overflow:hidden}
+  .ledger::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(201,162,75,.10),transparent 70%);pointer-events:none}
+  .ledger .row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:34px;position:relative}
+  .ledger .cell{display:flex;flex-direction:column;gap:8px}
+  .ledger .cell .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .ledger .cell .v{font-family:var(--disp);font-size:clamp(28px,3.4vw,42px);font-weight:600;letter-spacing:-.03em;line-height:1}
+  .ledger .cell.sub .v{font-family:var(--num);font-size:clamp(17px,2vw,21px);color:var(--muted);font-weight:500}
+  .ledger .div{align-self:stretch;width:1px;background:var(--line);margin:4px 0}
+  .ledger .v.pos{color:var(--pos)} .ledger .v.neg{color:var(--neg)}
   .delta{display:inline-flex;align-items:center;gap:6px;font-family:var(--num);font-size:13px;font-weight:500;padding:4px 10px;border-radius:999px;width:fit-content}
   .delta.pos{background:var(--pos-soft);color:var(--pos)} .delta.neg{background:var(--neg-soft);color:var(--neg)}
   .delta svg{width:12px;height:12px}
 
   .grid{display:grid;gap:18px}
-  .g-2{grid-template-columns:1.55fr 1fr}
-  @media(max-width:900px){.g-2{grid-template-columns:1fr}}
+  .g-2{grid-template-columns:1.5fr 1fr}
+  .g-3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:920px){.g-2,.g-3{grid-template-columns:1fr}}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px 22px}
   .card h3{margin:0 0 2px;font-size:14px;font-weight:600;letter-spacing:-.01em}
   .card .sub{color:var(--faint);font-size:12px;margin-bottom:16px}
-  .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  .card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;gap:10px}
   .card-head h3{margin:0}
 
-  /* allocation list */
-  .alloc{display:flex;flex-direction:column;gap:14px}
-  .alloc-row{display:flex;flex-direction:column;gap:6px}
-  .alloc-row .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px}
-  .alloc-row .top .nm{display:flex;align-items:center;gap:9px;font-weight:500}
-  .alloc-row .sw{width:9px;height:9px;border-radius:3px;flex:none}
-  .alloc-row .top .pc{font-family:var(--num);font-weight:500}
-  .alloc-row .top .pc small{color:var(--faint);font-weight:400}
-  .bar{height:6px;border-radius:99px;background:var(--line);position:relative;overflow:hidden}
-  .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
-  .bar .tgt{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55;border-radius:2px}
+  /* portfolio cards */
+  .pf-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:16px}
+  .pf-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:17px 18px;cursor:pointer;transition:.14s}
+  .pf-card:hover{border-color:var(--line-2);transform:translateY(-2px)}
+  .pf-card .h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .pf-card .h b{font-weight:600;font-size:14px}
+  .pf-card .amt{font-family:var(--disp);font-size:23px;font-weight:600;letter-spacing:-.02em}
+  .pf-card .meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+  .pf-card .spark{margin-top:12px}
 
+  /* donut + legend */
   .donut-wrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
   .donut-c{position:relative;flex:none}
   .donut-c .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-  .donut-c .mid b{font-family:var(--num);font-size:19px;font-weight:500;letter-spacing:-.02em}
-  .donut-c .mid span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
-  .legend{display:flex;flex-direction:column;gap:9px;font-size:13px}
+  .donut-c .mid b{font-family:var(--num);font-size:16px;font-weight:600;letter-spacing:-.02em}
+  .donut-c .mid span{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .legend{display:flex;flex-direction:column;gap:10px;font-size:13px;flex:1;min-width:140px}
   .legend .li{display:flex;align-items:center;gap:9px}
   .legend .li .sw{width:9px;height:9px;border-radius:3px;flex:none}
-  .legend .li .nm{flex:1}.legend .li .vl{font-family:var(--num);color:var(--muted)}
+  .legend .li .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .legend .li .vl{font-family:var(--num);color:var(--muted)}
+
+  /* allocation bars */
+  .alloc{display:flex;flex-direction:column;gap:15px}
+  .alloc-row{display:flex;flex-direction:column;gap:6px}
+  .alloc-row .top{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;gap:8px}
+  .alloc-row .top .nm{display:flex;align-items:center;gap:9px;font-weight:500}
+  .alloc-row .sw{width:9px;height:9px;border-radius:3px;flex:none}
+  .alloc-row .top .pc{font-family:var(--num);font-weight:500;white-space:nowrap}
+  .alloc-row .top .pc small{color:var(--faint);font-weight:400}
+  .bar{height:7px;border-radius:99px;background:var(--bg-2);position:relative;overflow:visible}
+  .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+  .bar .tgt{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.6;border-radius:2px}
+  .reb{font-size:11.5px;font-family:var(--num);margin-top:1px}
+  .reb.buy{color:var(--pos)} .reb.sell{color:var(--neg)} .reb.ok{color:var(--faint)}
+
+  /* instrument rows */
+  .inst-row{display:flex;align-items:center;gap:14px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;margin-bottom:9px;transition:.12s;background:var(--surface)}
+  .inst-row:hover{border-color:var(--line-2)}
+  .inst-row .ic{width:36px;height:36px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--num);font-weight:600;font-size:12px;color:#0d0d0d}
+  .inst-row .nm{min-width:0}
+  .inst-row .nm b{display:block;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inst-row .nm span{font-size:11.5px;color:var(--faint);display:flex;gap:7px;align-items:center}
+  .tag{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:5px;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+  .tag.live{color:var(--pos)} .tag.man{color:var(--gold-2)}
+  .inst-row .spark{margin-left:auto;flex:none}
+  .inst-row .fig{text-align:right;min-width:120px;flex:none}
+  .inst-row .fig b{font-family:var(--num);font-weight:600;font-size:14.5px;display:block}
+  .inst-row .fig .g{font-family:var(--num);font-size:11.5px}
+  .inst-row .fig .g.pos{color:var(--pos)} .inst-row .fig .g.neg{color:var(--neg)}
+  .inst-row .edit{width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;color:var(--faint);flex:none}
+  .inst-row .edit:hover{background:var(--surface-2);color:var(--ink)}
+  .inst-row .edit svg{width:16px;height:16px}
 
   /* tables */
   table{width:100%;border-collapse:collapse}
-  th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:right;padding:0 0 11px;border-bottom:1px solid var(--line)}
-  th:first-child{text-align:left}
-  td{padding:12px 0;border-bottom:1px solid var(--line);text-align:right;font-family:var(--num);font-size:13.5px}
-  td:first-child{text-align:left;font-family:var(--ui)}
+  th{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:right;padding:0 10px 11px;border-bottom:1px solid var(--line)}
+  th:first-child{text-align:left;padding-left:0}
+  td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:right;font-family:var(--num);font-size:13px}
+  td:first-child{text-align:left;font-family:var(--ui);padding-left:0}
   tr:last-child td{border-bottom:none}
   td.pos{color:var(--pos)} td.neg{color:var(--neg)}
-  td.act{width:34px;padding-right:0}
-  .row-del{width:28px;height:28px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:var(--faint);opacity:0;transition:.12s}
-  .row-del svg{width:15px;height:15px}
-  tr:hover .row-del{opacity:1}
-  .row-del:hover{background:var(--neg-soft);color:var(--neg)}
-  @media(hover:none){.row-del{opacity:1}}
 
-  /* asset rows */
-  .asset-row{display:flex;align-items:center;gap:16px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;cursor:pointer;transition:.12s;background:var(--surface)}
-  .asset-row:hover{border-color:var(--line-2);transform:translateY(-1px)}
-  .asset-row .ic{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:none;color:var(--accent)}
-  .asset-row .ic svg{width:17px;height:17px}
-  .asset-row .nm b{display:block;font-weight:600;font-size:14px}
-  .asset-row .nm span{font-size:12px;color:var(--faint)}
-  .asset-row .spark{margin-left:auto}
-  .asset-row .fig{text-align:right;min-width:118px}
-  .asset-row .fig b{font-family:var(--num);font-weight:500;font-size:15px;display:block}
-  .asset-row .fig .g{font-family:var(--num);font-size:12px}
-  .asset-row .fig .g.pos{color:var(--pos)} .asset-row .fig .g.neg{color:var(--neg)}
-
-  .btn{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:9px;font-size:13px;font-weight:500;border:1px solid var(--line-2);background:var(--surface);transition:.12s}
-  .btn:hover{border-color:var(--ink)}
-  .btn.pr{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .btn.pr:hover{background:var(--accent-2)}
-  .btn.danger{background:var(--neg);color:#fff;border-color:var(--neg)}
-  .btn.danger:hover{background:#a93a30;border-color:#a93a30}
-  .btn svg{width:14px;height:14px}
-
-  .empty{text-align:center;padding:46px 20px;color:var(--muted)}
+  .empty{text-align:center;padding:44px 20px;color:var(--muted);border:1px dashed var(--line-2);border-radius:14px}
   .empty svg{width:30px;height:30px;color:var(--faint);margin-bottom:12px}
   .empty p{margin:0 0 16px}
 
-  /* modal */
-  .ov{position:fixed;inset:0;background:rgba(21,33,28,.32);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
-  .ov.on{display:flex}
-  .modal{background:var(--surface);border-radius:16px;width:min(420px,100%);padding:24px;box-shadow:0 20px 50px rgba(21,33,28,.18)}
-  .modal h3{margin:0 0 18px;font-size:17px;font-weight:600;letter-spacing:-.02em}
-  .field{margin-bottom:14px}
-  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
-  .field input,.field select{width:100%;padding:10px 12px;border:1px solid var(--line-2);border-radius:9px;background:#fff;outline:none}
-  .field input:focus,.field select:focus{border-color:var(--accent)}
-  .field.num input{font-family:var(--num)}
-  .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
+  /* class chips manager */
+  .cls-list{display:flex;flex-direction:column;gap:2px}
+  .cls-row{display:flex;align-items:center;gap:13px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px;background:var(--surface)}
+  .cls-row .sw{width:13px;height:13px;border-radius:4px;flex:none}
+  .cls-row .nm{flex:1;font-weight:500}
+  .cls-row .tgt{font-family:var(--num);color:var(--muted);font-size:13px}
+  .cls-row input{width:70px;padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg-2);text-align:right;font-family:var(--num)}
 
-  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.25s;z-index:70;pointer-events:none}
+  /* modal */
+  .ov{position:fixed;inset:0;background:rgba(6,10,8,.6);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+  .ov.on{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--line-2);border-radius:18px;width:min(460px,100%);padding:24px;box-shadow:0 30px 70px rgba(0,0,0,.5);max-height:90vh;overflow-y:auto}
+  .modal h3{margin:0 0 4px;font-family:var(--disp);font-size:19px;font-weight:600;letter-spacing:-.02em}
+  .modal .msub{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500}
+  .field input,.field select{width:100%;padding:11px 13px;border:1px solid var(--line-2);border-radius:10px;background:var(--bg-2);outline:none}
+  .field input:focus,.field select:focus{border-color:var(--gold)}
+  .field.num input{font-family:var(--num)}
+  .frow{display:flex;gap:11px}.frow>*{flex:1}
+  .seg{display:flex;gap:7px;margin-bottom:16px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:80px;padding:10px;border:1px solid var(--line-2);border-radius:10px;background:var(--bg-2);font-size:12.5px;font-weight:500;color:var(--muted)}
+  .seg button.on{border-color:var(--gold);color:var(--ink);background:var(--gold-soft)}
+  .modal-foot{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-top:22px}
+  .modal-foot .rt{display:flex;gap:10px;margin-left:auto}
+  .search-res{max-height:210px;overflow-y:auto;border:1px solid var(--line);border-radius:10px;margin-top:-4px}
+  .sr{display:flex;align-items:center;gap:11px;padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .sr:last-child{border-bottom:none}
+  .sr:hover{background:var(--surface-2)}
+  .sr img{width:22px;height:22px;border-radius:50%}
+  .sr .tk{font-family:var(--num);font-size:11px;color:var(--faint)}
+  .sr b{font-size:13px;font-weight:600}
+  .picked{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--gold);background:var(--gold-soft);border-radius:10px;font-size:13px;margin-bottom:13px}
+  .picked .x{margin-left:auto;color:var(--muted);cursor:pointer}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-2);border:1px solid var(--line-2);color:var(--ink);padding:11px 18px;border-radius:11px;font-size:13px;opacity:0;transition:.25s;z-index:70;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.4)}
   .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hint-box{font-size:12px;color:var(--muted);background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:11px 13px;line-height:1.5}
 
   @media(max-width:760px){
     .shell{grid-template-columns:1fr}
-    .side{position:static;height:auto;flex-direction:row;align-items:center;gap:6px;overflow-x:auto;padding:12px;border-right:none;border-bottom:1px solid var(--line)}
-    .brand{padding:4px 10px 4px 4px;border-right:1px solid var(--line);margin-right:6px}
-    .nav{flex-direction:row;gap:4px}
-    .nav button{white-space:nowrap;padding:8px 12px}
-    .nav button .ic{display:none}
-    .side-foot{flex-direction:row;border-top:none;padding-top:0;margin-left:auto}
-    .side-foot .who{display:none}
-    .side-foot button span{display:none}
+    .side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    .main{padding:18px 16px 60px}
+    .ledger .div{display:none}
+    .inst-row .spark{display:none}
   }
 </style>
+</head>
+<body>
 
-<!-- ===================== LOCK / LOGIN ===================== -->
+<!-- ===================== LOGIN ===================== -->
 <div id="lock">
   <div class="lock-card">
-    <div class="lock-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="lock-mark"><svg viewBox="0 0 32 32" fill="#151208"><path d="M6 9c0-1 1-1.6 2-1.2l3 1.3c.6.3 1.3.2 1.9-.1a7 7 0 0 1 6.2 0c.6.3 1.3.4 1.9.1l3-1.3c1-.4 2 .2 2 1.2 0 2-1 3.7-2.6 4.8.3 1 .5 2 .5 3.1a9.3 9.3 0 0 1-18.6 0c0-1.1.2-2.1.5-3.1A5.8 5.8 0 0 1 6 9Zm7.2 6.4a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Zm5.6 0a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z"/></svg></div>
     <h1 id="lock-title">Zaloguj się</h1>
-    <p id="lock-desc">Twój portfel jest prywatny — widzisz go tylko Ty</p>
+    <p id="lock-desc">Twój majątek w jednym miejscu — prywatnie</p>
     <div class="auth-form">
       <input id="au-email" type="email" placeholder="e-mail" autocomplete="email">
       <input id="au-pass" type="password" placeholder="hasło" autocomplete="current-password">
@@ -202,14 +254,22 @@
   <div class="shell">
     <aside class="side">
       <div class="brand">
-        <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/></svg></div>
-        <b>Portfel</b>
+        <div class="mk"><svg viewBox="0 0 32 32" fill="#151208"><path d="M6 9c0-1 1-1.6 2-1.2l3 1.3c.6.3 1.3.2 1.9-.1a7 7 0 0 1 6.2 0c.6.3 1.3.4 1.9.1l3-1.3c1-.4 2 .2 2 1.2 0 2-1 3.7-2.6 4.8.3 1 .5 2 .5 3.1a9.3 9.3 0 0 1-18.6 0c0-1.1.2-2.1.5-3.1A5.8 5.8 0 0 1 6 9Zm7.2 6.4a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Zm5.6 0a1.4 1.4 0 1 0 0-2.8 1.4 1.4 0 0 0 0 2.8Z"/></svg></div>
+        <b>Byk</b>
       </div>
-      <nav class="nav" id="nav"></nav>
+      <nav class="nav">
+        <button data-nav="wealth"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>Majątek</button>
+      </nav>
+      <div class="navlabel">Portfele</div>
+      <div class="nav" id="pf-list"></div>
+      <div class="navlabel">Ustawienia</div>
+      <nav class="nav">
+        <button data-nav="classes"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg>Klasy aktywów</button>
+        <button data-nav="settings"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2 2 2 0 1 1-4 0 1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 4.6a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.9 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>Ustawienia</button>
+      </nav>
       <div class="side-foot">
         <div class="who" id="who"></div>
-        <button data-action="targets"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>Alokacja docelowa</span></button>
-        <button data-action="lock"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Wyloguj</span></button>
+        <button class="pf-item" data-action="logout"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>Wyloguj</button>
       </div>
     </aside>
     <main class="main" id="view"></main>
@@ -223,9 +283,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /* ============================================================
-   KONFIGURACJA SUPABASE
-   Wklej dwie wartości ze swojego projektu:
-   Supabase → Project Settings → Data API / API Keys
+   KONFIGURACJA SUPABASE  (Supabase → Project Settings → API)
    ============================================================ */
 const SUPABASE_URL      = 'https://szmbjbwfpovinyfifqae.supabase.co';        // np. https://abcd1234.supabase.co
 const SUPABASE_ANON_KEY = 'sb_publishable_oWU0UYB5jo7-KW88YqjcfA_f2qP2yiC';   // długi klucz "anon public"
@@ -236,533 +294,716 @@ const CONFIG_OK = SUPABASE_URL && SUPABASE_ANON_KEY
 const supabase = CONFIG_OK ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let currentUser = null, authMode = 'login', started = false;
 
-const PALETTE = ['#12463A','#C58A2E','#3E6FB0','#9A5BB8','#1C7A4D','#BB4338','#5A8C7B','#B07A4A'];
-const ICONS = {
-  crypto:'<path d="M9.5 6h4.2a2.8 2.8 0 0 1 0 5.6H9.5zM9.5 11.6h4.6a2.8 2.8 0 0 1 0 5.6H9.5zM9.5 6V4m0 16v-2m3-14v2m0 12v2"/>',
-  stocks:'<path d="M3 17l5-5 4 4 8-8"/><path d="M21 8v5h-5"/>',
-  cash:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
-  gold:'<path d="M5 8h14l-2.5 9h-9zM5 8l2-3h10l2 3"/>',
-  bond:'<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>',
-  realestate:'<path d="M4 11l8-6 8 6M6 10v9h12v-9"/>',
-  generic:'<circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/>'
-};
-const CAT_ICON = id => ICONS[id] || ICONS.generic;
-
-/* ---------- storage (Supabase — jeden wiersz JSON na użytkownika) ---------- */
-const store = {
-  async get(){
-    const { data, error } = await supabase.from('portfolios')
-      .select('data').eq('user_id', currentUser.id).maybeSingle();
-    if(error) throw error;
-    return data ? data.data : null;
-  },
-  async set(obj){
-    const { error } = await supabase.from('portfolios')
-      .upsert({ user_id: currentUser.id, data: obj, updated_at: new Date().toISOString() },
-              { onConflict:'user_id' });
-    if(error) throw error;
-  }
-};
+/* ---------- palette ---------- */
+const PALETTE = ['#C9A24B','#4FB07A','#5B8FD6','#B268C9','#E0655A','#3FA9A2','#D08A3E','#8AAE4C','#9B7BD9','#D95BA0','#5FA0C9','#C7B23E'];
 
 /* ---------- format ---------- */
-const PLN = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0});
-const PLN2 = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',minimumFractionDigits:2,maximumFractionDigits:2});
-const fmt = (v,dec=false)=> (dec?PLN2:PLN).format(v||0);
-const pct = v => (v>=0?'+':'')+ (v).toLocaleString('pl-PL',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+const nf0 = new Intl.NumberFormat('pl-PL',{maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt = (v)=> nf0.format(Math.round(v||0))+' zł';
+const fmt2 = (v)=> nf2.format(v||0)+' zł';
+const fmtShort = (v)=>{ v=v||0; const a=Math.abs(v);
+  if(a>=1e6) return (v/1e6).toLocaleString('pl-PL',{maximumFractionDigits:2})+' mln zł';
+  if(a>=1e4) return nf0.format(Math.round(v))+' zł';
+  return nf0.format(Math.round(v))+' zł'; };
+const pct = v => (v>=0?'+':'')+(v||0).toLocaleString('pl-PL',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
 const fmtDate = d => new Date(d).toLocaleDateString('pl-PL',{day:'2-digit',month:'short',year:'numeric'});
+const today = ()=> new Date().toISOString().slice(0,10);
 const parseNum = s => { s=(''+s).replace(/\s/g,'').replace(/zł/gi,'').replace(',','.'); const n=parseFloat(s); return isNaN(n)?0:n; };
+const uid = p => p+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-3);
+const esc = s => (''+(s??'')).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- seed data (z Excela użytkownika) ---------- */
+/* ============================================================
+   DANE
+   ============================================================ */
+let DATA=null, FX={PLN:1}, view={screen:'wealth',pfId:null};
+
 function seed(){
-  const cryptoSnaps = [
-    ['2023-08-18',20650,21233],['2023-09-08',22550,23970],['2023-10-06',24750,27811],
-    ['2023-11-05',25750,33616],['2023-12-03',30250,41345],['2023-12-31',30250,43937],
-    ['2024-01-27',31250,44975],['2024-02-28',31250,63963],['2024-03-31',31250,72161],
-    ['2024-04-30',31250,62362],['2024-05-30',31250,70414],['2024-06-29',31250,69642],
-    ['2024-07-31',31250,68297],['2024-09-01',31250,55750]
+  const C = [
+    {id:'akcje',   name:'Akcje',            color:'#5B8FD6', target:30},
+    {id:'etf',     name:'ETF',              color:'#3FA9A2', target:15},
+    {id:'krypto',  name:'Kryptowaluty',     color:'#C9A24B', target:15},
+    {id:'metale',  name:'Metale szlachetne',color:'#D08A3E', target:10},
+    {id:'nieruch', name:'Nieruchomości',    color:'#B268C9', target:20},
+    {id:'gotowka', name:'Gotówka',          color:'#4FB07A', target:10},
   ];
-  const stockSnaps = [
-    ['2023-08-18',3626,5508.29],['2023-09-08',3826,5633.82],['2023-10-06',3826,5507],
-    ['2023-11-05',3826,5771.69],['2023-12-03',3826,6040.59],['2023-12-31',3826,6032.77],
-    ['2024-01-27',3826,6293],['2024-02-28',3826,6652],['2024-03-31',3826,7196],
-    ['2024-04-30',3826,7730],['2024-05-30',3826,7887],['2024-06-29',3826,8277],['2024-07-31',3826,7354]
+  const P = [
+    {id:'p_inw', name:'Inwestycje', badge:'IN', color:'#C9A24B'},
+    {id:'p_nier',name:'Nieruchomości', badge:'NI', color:'#B268C9'},
   ];
-  const cushion = [['2024-05-30',12000,12000],['2024-06-29',12000,12000],['2024-07-31',12000,12000],['2024-09-01',12000,12000]];
-  const snap = a => a.map(([date,invested,value])=>({date,invested,value}));
-  return {
-    baseCurrency:'PLN',
-    categories:[
-      {id:'crypto',name:'Kryptowaluty',icon:'crypto'},
-      {id:'stocks',name:'Akcje',icon:'stocks'},
-      {id:'cushion',name:'Poducha',icon:'cash'}
-    ],
-    targets:{crypto:50,stocks:40,cushion:10},
-    assets:[
-      {id:'a1',name:'BTC → ALTY (długi termin)',categoryId:'crypto',currency:'PLN',snapshots:snap(cryptoSnaps)},
-      {id:'a2',name:'Akcje indywidualne',categoryId:'stocks',currency:'PLN',snapshots:snap(stockSnaps)},
-      {id:'a3',name:'Gotówka — poducha',categoryId:'cushion',currency:'PLN',snapshots:snap(cushion)}
-    ]
-  };
+  const I = [
+    {id:uid('i_'), portfolioId:'p_inw', classId:'krypto', name:'Bitcoin', mode:'auto', provider:'coingecko', symbol:'bitcoin', currency:'PLN', quantity:0.15, invested:28000},
+    {id:uid('i_'), portfolioId:'p_inw', classId:'akcje',  name:'Apple', mode:'auto', provider:'twelvedata', symbol:'AAPL', exchange:'', currency:'USD', quantity:10, invested:6500},
+    {id:uid('i_'), portfolioId:'p_inw', classId:'metale', name:'Złoto (uncje)', mode:'auto', provider:'twelvedata', symbol:'XAU/USD', exchange:'', currency:'USD', quantity:2, invested:14000},
+    {id:uid('i_'), portfolioId:'p_inw', classId:'gotowka',name:'Gotówka — poducha', mode:'manual', manualValue:12000, invested:12000},
+    {id:uid('i_'), portfolioId:'p_nier',classId:'nieruch',name:'Mieszkanie — Katowice', mode:'manual', manualValue:520000, invested:410000},
+  ];
+  return { version:2, settings:{baseCurrency:'PLN',twelveKey:'',geckoKey:''}, classes:C, portfolios:P, instruments:I, history:{} };
 }
 
-/* ---------- state ---------- */
-let DATA=null, FX={PLN:1,USD:4.05,EUR:4.30}, view={tab:'overview',asset:null};
-
+/* ---------- storage (Supabase, jeden wiersz JSON) ---------- */
 async function loadData(){
   let d=null;
-  try{ d = await store.get(); }
-  catch(e){ toast('Błąd wczytywania danych'); console.error(e); }
-  if(!d || !d.assets){ d = seed(); try{ await store.set(d); }catch(e){ console.error(e); } }
+  try{
+    const { data, error } = await supabase.from('portfolio_data')
+      .select('data').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error; d = data?data.data:null;
+  }catch(e){ toast('Błąd wczytywania'); console.error(e); }
+  if(!d || !d.instruments){ d = seed(); }
   DATA = d;
+  if(!DATA.settings) DATA.settings={baseCurrency:'PLN',twelveKey:'',geckoKey:''};
+  if(!DATA.history) DATA.history={};
+  if(d && !d.instruments) await save();
 }
-async function save(){ try{ await store.set(DATA); }catch(e){ toast('Nie udało się zapisać'); console.error(e); } }
+let saveT;
+async function save(){ clearTimeout(saveT); saveT=setTimeout(async()=>{
+  try{ await supabase.from('portfolio_data').upsert(
+    { user_id: currentUser.id, data: DATA, updated_at: new Date().toISOString() }, { onConflict:'user_id' });
+  }catch(e){ toast('Nie udało się zapisać'); console.error(e); }
+},400); }
 
-/* ---------- computations ---------- */
-const rate = cur => FX[cur]||1;
-function assetLatest(a){
-  if(!a.snapshots.length) return {invested:0,value:0,date:null};
-  const s=[...a.snapshots].sort((x,y)=>x.date<y.date?-1:1);
-  const last=s[s.length-1]; const r=rate(a.currency);
-  return {invested:last.invested*r,value:last.value*r,date:last.date,growth:(last.value-last.invested)*r,
-          gpct: last.invested? (last.value-last.invested)/last.invested*100 : 0};
+/* ============================================================
+   CENY NA ŻYWO
+   ============================================================ */
+let refreshing=false;
+const fxToPln = cur => cur==='PLN' ? 1 : (FX[cur] ? 1/FX[cur] : (cur==='USD'?4.05:cur==='EUR'?4.30:1));
+
+async function fetchFx(){
+  try{
+    const r=await fetch('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR,GBP,CHF');
+    const j=await r.json();
+    if(j&&j.rates) FX={PLN:1,...j.rates};
+  }catch(e){}
 }
-function allDates(){ const set=new Set(); DATA.assets.forEach(a=>a.snapshots.forEach(s=>set.add(s.date))); return [...set].sort(); }
-function valueAt(a,date){ // most recent snapshot on/before date
-  const s=a.snapshots.filter(x=>x.date<=date).sort((x,y)=>x.date<y.date?-1:1);
-  if(!s.length) return null; const last=s[s.length-1]; const r=rate(a.currency);
-  return {invested:last.invested*r,value:last.value*r};
-}
-function timeline(filterCat){
-  const dates=allDates(); const out=[];
-  const assets = DATA.assets.filter(a=> !filterCat || a.categoryId===filterCat);
-  for(const d of dates){
-    let inv=0,val=0,any=false;
-    for(const a of assets){ const v=valueAt(a,d); if(v){inv+=v.invested;val+=v.value;any=true;} }
-    if(any) out.push({date:d,invested:inv,value:val,profit:val-inv});
+
+async function refreshPrices(silent){
+  if(refreshing) return; refreshing=true; setLive('loading');
+  await fetchFx();
+  const auto = DATA.instruments.filter(i=>i.mode==='auto');
+  let ok=true;
+  // --- crypto (CoinGecko) ---
+  const geckoIds=[...new Set(auto.filter(i=>i.provider==='coingecko').map(i=>i.symbol))];
+  if(geckoIds.length){
+    try{
+      const key=DATA.settings.geckoKey?('&x_cg_demo_api_key='+encodeURIComponent(DATA.settings.geckoKey)):'';
+      const r=await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+geckoIds.join(',')+'&vs_currencies=pln'+key);
+      const j=await r.json();
+      auto.filter(i=>i.provider==='coingecko').forEach(i=>{ const p=j[i.symbol]?.pln; if(p){ i.lastPrice=p; i.lastCur='PLN'; i.lastAt=Date.now(); } });
+    }catch(e){ ok=false; }
   }
-  return out;
+  // --- Twelve Data (akcje / metale / GPW) ---
+  const td=auto.filter(i=>i.provider==='twelvedata');
+  if(td.length){
+    const key=DATA.settings.twelveKey;
+    if(!key){ if(!silent) toast('Dodaj darmowy klucz Twelve Data w Ustawieniach, by pobrać ceny akcji i metali'); }
+    else{
+      const noEx=td.filter(i=>!i.exchange), withEx=td.filter(i=>i.exchange);
+      for(let k=0;k<noEx.length;k+=20){
+        const chunk=noEx.slice(k,k+20); const syms=[...new Set(chunk.map(i=>i.symbol))].join(',');
+        try{
+          const r=await fetch('https://api.twelvedata.com/quote?symbol='+encodeURIComponent(syms)+'&apikey='+encodeURIComponent(key));
+          const j=await r.json(); applyTd(chunk,j);
+        }catch(e){ ok=false; }
+      }
+      for(const i of withEx){
+        try{
+          const r=await fetch('https://api.twelvedata.com/quote?symbol='+encodeURIComponent(i.symbol)+'&exchange='+encodeURIComponent(i.exchange)+'&apikey='+encodeURIComponent(key));
+          const j=await r.json(); applyTd([i],j);
+        }catch(e){ ok=false; }
+      }
+    }
+  }
+  snapshotHistory();
+  await save(); render(); setLive(ok?'on':'err');
+  refreshing=false;
 }
-function totals(filterCat){
-  const assets=DATA.assets.filter(a=>!filterCat||a.categoryId===filterCat);
-  let inv=0,val=0; assets.forEach(a=>{const l=assetLatest(a);inv+=l.invested;val+=l.value;});
-  const tl=timeline(filterCat); const cur=tl[tl.length-1], prev=tl[tl.length-2];
-  const monthly = cur&&prev? cur.profit-prev.profit : 0;
-  return {invested:inv,value:val,profit:val-inv,gpct:inv?(val-inv)/inv*100:0,monthly,tl};
+function applyTd(items,j){
+  const get=sym=> (j && j[sym]) ? j[sym] : (j && j.symbol===sym ? j : (items.length===1&&j&&j.close?j:null));
+  items.forEach(i=>{
+    const q=get(i.symbol);
+    if(q && q.close && !q.code){ i.lastPrice=parseFloat(q.close); i.lastCur=q.currency||i.currency||'USD'; i.lastAt=Date.now();
+      if(typeof q.percent_change!=='undefined') i.dayPct=parseFloat(q.percent_change); }
+  });
+}
+function setLive(state){
+  document.querySelectorAll('.live').forEach(el=>{
+    el.classList.remove('on','err');
+    const t=el.querySelector('.txt');
+    if(state==='loading'){ if(t)t.textContent='Odświeżam…'; }
+    else if(state==='err'){ el.classList.add('err'); if(t)t.textContent='Częściowo — sprawdź klucze'; }
+    else { el.classList.add('on'); if(t)t.textContent='Na żywo'; }
+  });
 }
 
 /* ============================================================
-   SVG chart helpers (hand-rolled, zero deps)
+   OBLICZENIA
    ============================================================ */
-function lineChart(series,{w=560,h=190,color='var(--accent)',fill='var(--accent-soft)'}={}){
-  if(series.length<2) return `<div class="empty" style="padding:30px"><p>Za mało danych, by narysować wykres.</p></div>`;
-  const pad={l:8,r:8,t:14,b:22};
-  const xs=series.map(p=>new Date(p.date).getTime());
-  const ys=series.map(p=>p.value);
-  const xmin=Math.min(...xs),xmax=Math.max(...xs);
-  const ymin=Math.min(...ys),ymax=Math.max(...ys); const yr=(ymax-ymin)||1;
+function instValue(i){
+  if(i.mode==='manual') return i.manualValue||0;
+  if(!i.lastPrice) return 0;
+  return (i.quantity||0)*i.lastPrice*fxToPln(i.lastCur||i.currency||'PLN');
+}
+function instInvested(i){ return i.invested||0; }
+const pfInstruments = pfId => DATA.instruments.filter(i=>i.portfolioId===pfId);
+
+function pfTotals(pfId){
+  const list = pfId ? pfInstruments(pfId) : DATA.instruments;
+  let val=0, inv=0, cash=0;
+  list.forEach(i=>{ const v=instValue(i); val+=v; inv+=instInvested(i);
+    if(i.classId==='gotowka') cash+=v; });
+  return {value:val, invested:inv, profit:val-inv, gpct:inv?(val-inv)/inv*100:0, cash, count:list.length};
+}
+function classBreakdown(pfId){
+  const list = pfId ? pfInstruments(pfId) : DATA.instruments;
+  const map={};
+  list.forEach(i=>{ map[i.classId]=(map[i.classId]||0)+instValue(i); });
+  const total=Object.values(map).reduce((a,b)=>a+b,0)||1;
+  return DATA.classes.filter(c=>map[c.id]).map(c=>({...c, value:map[c.id], pctNow:map[c.id]/total*100}))
+    .sort((a,b)=>b.value-a.value);
+}
+function snapshotHistory(){
+  const d=today();
+  const put=(key,val)=>{ if(!DATA.history[key]) DATA.history[key]=[];
+    const arr=DATA.history[key]; const last=arr[arr.length-1];
+    if(last&&last.date===d) last.value=val; else arr.push({date:d,value:val});
+    if(arr.length>400) arr.shift(); };
+  put('total', pfTotals(null).value);
+  DATA.portfolios.forEach(p=> put(p.id, pfTotals(p.id).value));
+}
+const histOf = key => (DATA.history[key]||[]).map(h=>({date:h.date,value:h.value}));
+
+/* ============================================================
+   WYKRESY (SVG, bez zależności)
+   ============================================================ */
+function lineChart(series,{w=560,h=190,color='var(--gold)'}={}){
+  if(series.length<2) return `<div class="empty" style="padding:34px"><p>Historia zbuduje się z czasem — przy każdym odświeżeniu cen zapisuję punkt wartości.</p></div>`;
+  const pad={l:8,r:8,t:16,b:24};
+  const xs=series.map(p=>new Date(p.date).getTime()), ys=series.map(p=>p.value);
+  const xmin=Math.min(...xs),xmax=Math.max(...xs),ymin=Math.min(...ys),ymax=Math.max(...ys),yr=(ymax-ymin)||1;
   const X=t=>pad.l+(xmax===xmin?0:(t-xmin)/(xmax-xmin))*(w-pad.l-pad.r);
   const Y=v=>h-pad.b-((v-ymin)/yr)*(h-pad.t-pad.b);
   const pts=series.map(p=>[X(new Date(p.date).getTime()),Y(p.value)]);
   const line=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
   const area=line+` L ${pts[pts.length-1][0].toFixed(1)} ${h-pad.b} L ${pts[0][0].toFixed(1)} ${h-pad.b} Z`;
-  const lastP=pts[pts.length-1];
-  const gx=[xmin,xmax].map(t=>X(t));
-  const xl=[series[0].date,series[series.length-1].date];
+  const lp=pts[pts.length-1];
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="none" style="display:block">
-    <line x1="${pad.l}" y1="${h-pad.b}" x2="${w-pad.r}" y2="${h-pad.b}" stroke="var(--line)" stroke-width="1"/>
-    <path d="${area}" fill="${fill}" opacity=".7"/>
+    <defs><linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".22"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${pad.l}" y1="${h-pad.b}" x2="${w-pad.r}" y2="${h-pad.b}" stroke="var(--line)"/>
+    <path d="${area}" fill="url(#fg)"/>
     <path d="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${lastP[0]}" cy="${lastP[1]}" r="3.4" fill="${color}"/>
-    <text x="${gx[0]}" y="${h-6}" font-size="10" fill="var(--faint)" font-family="var(--num)">${fmtDate(xl[0])}</text>
-    <text x="${gx[1]}" y="${h-6}" font-size="10" fill="var(--faint)" text-anchor="end" font-family="var(--num)">${fmtDate(xl[1])}</text>
+    <circle cx="${lp[0]}" cy="${lp[1]}" r="3.4" fill="${color}"/>
+    <text x="${pad.l}" y="${h-7}" font-size="10" fill="var(--faint)" font-family="var(--num)">${fmtDate(series[0].date)}</text>
+    <text x="${w-pad.r}" y="${h-7}" font-size="10" fill="var(--faint)" text-anchor="end" font-family="var(--num)">${fmtDate(series[series.length-1].date)}</text>
   </svg>`;
 }
-function donut(parts,size=148,thick=20){
-  const total=parts.reduce((s,p)=>s+p.value,0)||1; const r=(size-thick)/2; const c=2*Math.PI*r; let off=0;
-  const segs=parts.map(p=>{const frac=p.value/total;const len=frac*c;
+function donut(parts,size=150,thick=22){
+  const total=parts.reduce((s,p)=>s+p.value,0)||1,r=(size-thick)/2,c=2*Math.PI*r;let off=0;
+  const segs=parts.map(p=>{const len=p.value/total*c;
     const s=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thick}"
       stroke-dasharray="${len.toFixed(2)} ${(c-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
-      transform="rotate(-90 ${size/2} ${size/2})" stroke-linecap="butt"/>`; off+=len; return s;}).join('');
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="${thick}"/>${segs}</svg>`;
+      transform="rotate(-90 ${size/2} ${size/2})"/>`;off+=len;return s;}).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--bg-2)" stroke-width="${thick}"/>${segs}</svg>`;
 }
-function barChart(items,{w=560,h=150}={}){
-  if(!items.length) return '';
-  const pad={t:10,b:22,l:4,r:4}; const vals=items.map(i=>i.value);
-  const max=Math.max(1,...vals.map(Math.abs)); const zero=pad.t+(h-pad.t-pad.b)*(max/(max*2));
-  const bw=(w-pad.l-pad.r)/items.length; const innerW=Math.min(26,bw*.62);
-  const bars=items.map((it,i)=>{const x=pad.l+i*bw+(bw-innerW)/2;
-    const bh=Math.abs(it.value)/max*(h-pad.t-pad.b)/2;
-    const y=it.value>=0?zero-bh:zero;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${innerW.toFixed(1)}" height="${Math.max(1,bh).toFixed(1)}"
-      rx="3" fill="${it.value>=0?'var(--pos)':'var(--neg)'}" opacity=".9"/>`;}).join('');
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block">
-    <line x1="${pad.l}" y1="${zero}" x2="${w-pad.r}" y2="${zero}" stroke="var(--line)" stroke-width="1"/>${bars}</svg>`;
-}
-function spark(a,w=88,h=30){
-  const s=[...a.snapshots].sort((x,y)=>x.date<y.date?-1:1).map(p=>p.value);
-  if(s.length<2) return `<svg width="${w}" height="${h}"></svg>`;
+function spark(series,{w=110,h=34,color}={}){
+  const s=series.map(p=>p.value); if(s.length<2) return `<svg width="${w}" height="${h}"></svg>`;
   const mn=Math.min(...s),mx=Math.max(...s),r=(mx-mn)||1;
   const pts=s.map((v,i)=>`${(i/(s.length-1)*w).toFixed(1)},${(h-2-((v-mn)/r)*(h-4)).toFixed(1)}`).join(' ');
-  const up=s[s.length-1]>=s[0];
-  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${up?'var(--pos)':'var(--neg)'}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+  const up=s[s.length-1]>=s[0]; const col=color||(up?'var(--pos)':'var(--neg)');
+  return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
 /* ============================================================
-   RENDER
+   KOMPONENTY
    ============================================================ */
-function renderNav(){
-  const n=document.getElementById('nav');
-  let h=`<button class="${view.tab==='overview'?'active':''}" data-tab="overview">
-    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Portfel</button>`;
-  DATA.categories.forEach(c=>{ h+=`<button class="${view.tab===c.id?'active':''}" data-tab="${c.id}">
-    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON(c.icon)}</svg>${c.name}</button>`; });
-  h+=`<button class="add" data-action="addcat"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj kategorię</button>`;
-  n.innerHTML=h;
-}
-
+function liveChip(){ return `<span class="live"><span class="dot"></span><span class="txt">—</span></span>`; }
 function deltaChip(v){
-  const cls=v>=0?'pos':'neg';
-  const arrow=v>=0?'<path d="M12 19V5M5 12l7-7 7 7"/>':'<path d="M12 5v14M5 12l7 7 7-7"/>';
-  return `<span class="delta ${cls} num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${arrow}</svg>${fmt(Math.abs(v))}</span>`;
+  const cls=v>=0?'pos':'neg', arrow=v>=0?'<path d="M12 19V5M5 12l7-7 7 7"/>':'<path d="M12 5v14M5 12l7 7 7-7"/>';
+  return `<span class="delta ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${arrow}</svg>${pct(v)}</span>`;
+}
+function classIco(i){
+  const c=DATA.classes.find(x=>x.id===i.classId)||{color:'#888'};
+  const label=(i.name||'?').replace(/[^A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9]/g,'').slice(0,3).toUpperCase()||'—';
+  return `<div class="ic" style="background:${c.color}">${esc(label)}</div>`;
 }
 
-function renderOverview(){
-  const t=totals();
-  const cats=DATA.categories.map((c,i)=>{const ct=totals(c.id);return{...c,value:ct.value,color:PALETTE[i%PALETTE.length],pctNow:t.value?ct.value/t.value*100:0,target:DATA.targets[c.id]||0};});
-  const lastDate=t.tl.length?t.tl[t.tl.length-1].date:null;
+/* ============================================================
+   WIDOKI
+   ============================================================ */
+function renderSidebar(){
+  document.getElementById('who').textContent=currentUser?.email||'';
+  const el=document.getElementById('pf-list');
+  el.innerHTML = DATA.portfolios.map(p=>{
+    const t=pfTotals(p.id);
+    return `<button class="pf-item ${view.screen==='pf'&&view.pfId===p.id?'active':''}" data-pf="${p.id}">
+      <span class="pf-badge" style="background:${p.color}">${esc(p.badge||'··')}</span>
+      <span class="nm">${esc(p.name)}</span><span class="val">${fmtShort(t.value)}</span></button>`;
+  }).join('') + `<button class="pf-item add-row" data-action="addpf">+ Dodaj portfel</button>`;
+  document.querySelectorAll('.nav [data-nav]').forEach(b=>b.classList.toggle('active', view.screen===b.dataset.nav));
+}
 
-  const monthlyBars = t.tl.slice(1).map((p,i)=>({value:p.profit-t.tl[i].profit,date:p.date}));
-
+function renderWealth(){
+  const t=pfTotals(null);
+  const cats=classBreakdown(null).map((c,i)=>({...c,color:c.color||PALETTE[i%PALETTE.length]}));
+  const hist=histOf('total');
+  const pfs=DATA.portfolios.map(p=>({p, t:pfTotals(p.id), h:histOf(p.id)}));
   document.getElementById('view').innerHTML=`
   <div class="topbar">
-    <div><div class="eyebrow">Przegląd</div><h2>Cały portfel</h2></div>
-    <div class="fx" id="fx"></div>
-  </div>
-
-  <div class="ledger">
-    <div class="row">
-      <div class="cell"><span class="lbl">Wartość</span><span class="v num">${fmt(t.value)}</span>
-        ${deltaChip(t.monthly)} <span style="font-size:11px;color:var(--faint);margin-left:2px">wynik miesiąca</span></div>
-      <div class="div"></div>
-      <div class="cell sub"><span class="lbl">Wpłacone</span><span class="v num">${fmt(t.invested)}</span></div>
-      <div class="cell sub"><span class="lbl">Zysk</span><span class="v num ${t.profit>=0?'pos':'neg'}">${fmt(t.profit)}</span>
-        <span class="num ${t.profit>=0?'pos':'neg'}" style="font-size:13px">${pct(t.gpct)}</span></div>
+    <div><div class="eyebrow">Przegląd ${liveChip()}</div><h2>Majątek</h2></div>
+    <div class="top-actions">
+      <button class="btn ghost" data-action="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>Odśwież ceny</button>
     </div>
   </div>
+  <div class="ledger"><div class="row">
+    <div class="cell"><span class="lbl">Twój majątek</span><span class="v">${fmt(t.value)}</span>${deltaChip(t.gpct)}</div>
+    <div class="div"></div>
+    <div class="cell sub"><span class="lbl">Wpłacone</span><span class="v">${fmt(t.invested)}</span></div>
+    <div class="cell sub"><span class="lbl">Gotówka</span><span class="v">${fmt(t.cash)}</span></div>
+    <div class="cell sub"><span class="lbl">Zysk / strata</span><span class="v ${t.profit>=0?'pos':'neg'}">${fmt(t.profit)}</span></div>
+  </div></div>
 
   <div class="grid g-2">
     <div class="card">
-      <div class="card-head"><div><h3>Wartość w czasie</h3><div class="sub">${lastDate?'na dzień '+fmtDate(lastDate):''}</div></div></div>
-      ${lineChart(t.tl,{})}
+      <div class="card-head"><div><h3>Wartość majątku w czasie</h3><div class="sub">suma wszystkich portfeli</div></div></div>
+      ${lineChart(hist,{})}
     </div>
     <div class="card">
-      <h3>Alokacja</h3><div class="sub">obecna vs docelowa</div>
+      <h3>Podział wg klas</h3><div class="sub">obecna struktura majątku</div>
       <div class="donut-wrap">
-        <div class="donut-c" style="width:148px;height:148px">
-          ${donut(cats.map(c=>({value:c.value,color:c.color})))}
-          <div class="mid"><b>${fmt(t.value)}</b><span>Razem</span></div>
-        </div>
-        <div class="legend" style="flex:1">
-          ${cats.map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${c.name}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')}
-        </div>
+        <div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid"><b>${fmtShort(t.value)}</b><span>Razem</span></div></div>
+        <div class="legend">${cats.slice(0,7).map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')||'<span class="sub">Brak aktywów.</span>'}</div>
       </div>
     </div>
   </div>
 
-  <div class="grid g-2" style="margin-top:18px">
-    <div class="card">
-      <h3>Wyniki miesięczne</h3><div class="sub">zmiana zysku okres do okresu</div>
-      ${barChart(monthlyBars,{})}
-    </div>
-    <div class="card">
-      <h3>Cel alokacji</h3><div class="sub">| docelowy udział</div>
-      <div class="alloc" style="margin-top:6px">
-        ${cats.map(c=>`<div class="alloc-row">
-          <div class="top"><span class="nm"><span class="sw" style="background:${c.color}"></span>${c.name}</span>
-            <span class="pc">${c.pctNow.toFixed(0)}% <small>/ cel ${c.target}%</small></span></div>
-          <div class="bar"><i style="width:${Math.min(100,c.pctNow)}%;background:${c.color}"></i><span class="tgt" style="left:${Math.min(100,c.target)}%"></span></div>
-        </div>`).join('')}
-      </div>
-    </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 14px">
+    <h3 style="margin:0;font-family:var(--disp);font-size:17px">Portfele</h3>
+    <button class="btn sm ghost" data-action="addpf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nowy portfel</button>
+  </div>
+  <div class="pf-cards">
+    ${pfs.map(({p,t,h})=>`<div class="pf-card" data-pf="${p.id}">
+      <div class="h"><span class="pf-badge" style="background:${p.color}">${esc(p.badge||'··')}</span><b>${esc(p.name)}</b></div>
+      <div class="amt">${fmt(t.value)}</div>
+      <div class="spark">${spark(h,{})}</div>
+      <div class="meta"><span>${t.count} ${t.count===1?'pozycja':'pozycji'}</span><span class="${t.profit>=0?'':''}" style="color:${t.profit>=0?'var(--pos)':'var(--neg)'}">${pct(t.gpct)}</span></div>
+    </div>`).join('')}
   </div>`;
-  renderFx();
+  setLive('on');
 }
 
-function renderCategory(cat){
-  const c=DATA.categories.find(x=>x.id===cat); if(!c){view.tab='overview';return render();}
-  const t=totals(cat);
-  const assets=DATA.assets.filter(a=>a.categoryId===cat);
-  const idx=DATA.categories.findIndex(x=>x.id===cat); const color=PALETTE[idx%PALETTE.length];
+function renderPortfolio(pfId){
+  const p=DATA.portfolios.find(x=>x.id===pfId); if(!p){view={screen:'wealth'};return render();}
+  const t=pfTotals(pfId);
+  const list=pfInstruments(pfId);
+  const cats=classBreakdown(pfId).map((c,i)=>({...c,color:c.color||PALETTE[i%PALETTE.length]}));
+  const hist=histOf(pfId);
+  // rebalancing vs targets (na poziomie majątku)
+  const allTotal=pfTotals(null).value||1;
+  const alloc=DATA.classes.map(c=>{
+    const now=DATA.instruments.filter(i=>i.classId===c.id).reduce((a,i)=>a+instValue(i),0);
+    return {...c, pctNow:now/allTotal*100, valNow:now};
+  }).filter(c=>c.target>0||c.valNow>0);
 
   let body;
-  if(!assets.length){
+  if(!list.length){
     body=`<div class="empty">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-      <p>Brak aktywów w tej kategorii.</p>
-      <button class="btn pr" data-action="addasset" data-cat="${cat}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj aktywo</button></div>`;
+      <p>Ten portfel jest pusty. Dodaj pierwszą pozycję — z ceną na żywo albo ręcznie.</p>
+      <button class="btn pr" data-action="addinst" data-pf="${pfId}">Dodaj pozycję</button></div>`;
   } else {
     body=`<div class="grid g-2" style="margin-bottom:18px">
-      <div class="card"><div class="card-head"><div><h3>Wartość w czasie</h3><div class="sub">${c.name}</div></div></div>${lineChart(t.tl,{color,fill:'var(--accent-soft)'})}</div>
-      <div class="card"><h3>Skład kategorii</h3><div class="sub">udział aktywów</div>
-        <div class="donut-wrap"><div class="donut-c" style="width:148px;height:148px">
-          ${donut(assets.map((a,i)=>({value:assetLatest(a).value,color:PALETTE[(idx+i)%PALETTE.length]})))}
-          <div class="mid"><b>${fmt(t.value)}</b><span>${c.name}</span></div></div>
-          <div class="legend" style="flex:1">${assets.map((a,i)=>`<div class="li"><span class="sw" style="background:${PALETTE[(idx+i)%PALETTE.length]}"></span><span class="nm">${a.name}</span><span class="vl">${fmt(assetLatest(a).value)}</span></div>`).join('')}</div>
+      <div class="card"><div class="card-head"><div><h3>Wartość w czasie</h3><div class="sub">${esc(p.name)}</div></div></div>${lineChart(hist,{color:p.color})}</div>
+      <div class="card"><h3>Podział portfela</h3><div class="sub">wg klas aktywów</div>
+        <div class="donut-wrap"><div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid"><b>${fmtShort(t.value)}</b><span>${t.count} poz.</span></div></div>
+          <div class="legend">${cats.slice(0,7).map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')}</div>
         </div></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <h3 style="margin:0;font-size:15px">Aktywa</h3>
-      <button class="btn" data-action="addasset" data-cat="${cat}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj aktywo</button>
+      <h3 style="margin:0;font-family:var(--disp);font-size:17px">Pozycje</h3>
+      <button class="btn ghost sm" data-action="addinst" data-pf="${pfId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj pozycję</button>
     </div>`;
-    body+=assets.map(a=>{const l=assetLatest(a);return `<div class="asset-row" data-asset="${a.id}">
-      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CAT_ICON(c.icon)}</svg></div>
-      <div class="nm"><b>${a.name}</b><span>${a.currency}${l.date?' · '+fmtDate(l.date):''}</span></div>
-      <div class="spark">${spark(a)}</div>
-      <div class="fig"><b class="num">${fmt(l.value)}</b><span class="g ${l.growth>=0?'pos':'neg'}">${pct(l.gpct)} · ${fmt(l.growth)}</span></div>
-    </div>`;}).join('');
+    body+=list.map(i=>{
+      const v=instValue(i), inv=instInvested(i), g=v-inv, gp=inv?g/inv*100:0;
+      const priceTxt = i.mode==='auto' ? (i.lastPrice? (nf2.format(i.lastPrice)+' '+(i.lastCur||i.currency)) : 'brak ceny') : 'ręcznie';
+      const sub = i.mode==='auto'
+        ? `<span class="tag live">na żywo</span> <span>${esc(i.symbol)}</span> · <span>${(i.quantity||0).toLocaleString('pl-PL',{maximumFractionDigits:6})} × ${priceTxt}</span>`
+        : `<span class="tag man">ręczne</span> <span>${i.lastAt?'':''}wpisana wartość</span>`;
+      return `<div class="inst-row">
+        ${classIco(i)}
+        <div class="nm"><b>${esc(i.name)}</b><span>${sub}</span></div>
+        <div class="fig"><b>${fmt(v)}</b><span class="g ${g>=0?'pos':'neg'}">${pct(gp)} · ${fmt(g)}</span></div>
+        <button class="edit" data-action="editinst" data-id="${i.id}" title="Edytuj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
+      </div>`;
+    }).join('');
+    // rebalancing card
+    body+=`<div class="card" style="margin-top:18px"><h3>Cel alokacji</h3><div class="sub">obecny udział vs docelowy (dla całego majątku) · pionowa kreska = cel</div>
+      <div class="alloc" style="margin-top:14px">${alloc.map((c,i)=>{
+        const gap=c.target-c.pctNow, gapVal=gap/100*allTotal;
+        const reb = Math.abs(gap)<1.5 ? `<span class="reb ok">≈ na celu</span>`
+          : gap>0 ? `<span class="reb buy">dokup ~${fmt(Math.abs(gapVal))}</span>`
+                  : `<span class="reb sell">nadwyżka ~${fmt(Math.abs(gapVal))}</span>`;
+        return `<div class="alloc-row">
+          <div class="top"><span class="nm"><span class="sw" style="background:${c.color||PALETTE[i%PALETTE.length]}"></span>${esc(c.name)}</span>
+            <span class="pc">${c.pctNow.toFixed(0)}% <small>/ cel ${c.target}%</small></span></div>
+          <div class="bar"><i style="width:${Math.min(100,c.pctNow)}%;background:${c.color||PALETTE[i%PALETTE.length]}"></i><span class="tgt" style="left:${Math.min(100,c.target)}%"></span></div>
+          ${reb}
+        </div>`;}).join('')}</div></div>`;
   }
 
   document.getElementById('view').innerHTML=`
   <div class="topbar">
-    <div><div class="eyebrow">Kategoria</div><h2>${c.name}</h2></div>
-    <div class="fx" id="fx"></div>
+    <div><div class="eyebrow"><span class="pf-badge" style="width:16px;height:16px;background:${p.color}">${esc(p.badge||'')}</span> Portfel ${liveChip()}</div><h2>${esc(p.name)}</h2></div>
+    <div class="top-actions">
+      <button class="btn ghost sm" data-action="editpf" data-pf="${pfId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>Edytuj</button>
+      <button class="btn ghost" data-action="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>Odśwież</button>
+      <button class="btn pr" data-action="addinst" data-pf="${pfId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj</button>
+    </div>
   </div>
   <div class="ledger"><div class="row">
-    <div class="cell"><span class="lbl">Wartość</span><span class="v num">${fmt(t.value)}</span>${deltaChip(t.monthly)} <span style="font-size:11px;color:var(--faint)">wynik miesiąca</span></div>
+    <div class="cell"><span class="lbl">Wartość portfela</span><span class="v">${fmt(t.value)}</span>${deltaChip(t.gpct)}</div>
     <div class="div"></div>
-    <div class="cell sub"><span class="lbl">Wpłacone</span><span class="v num">${fmt(t.invested)}</span></div>
-    <div class="cell sub"><span class="lbl">Zysk</span><span class="v num ${t.profit>=0?'pos':'neg'}">${fmt(t.profit)}</span><span class="num ${t.profit>=0?'pos':'neg'}" style="font-size:13px">${pct(t.gpct)}</span></div>
+    <div class="cell sub"><span class="lbl">Wpłacone</span><span class="v">${fmt(t.invested)}</span></div>
+    <div class="cell sub"><span class="lbl">Gotówka</span><span class="v">${fmt(t.cash)}</span></div>
+    <div class="cell sub"><span class="lbl">Zysk / strata</span><span class="v ${t.profit>=0?'pos':'neg'}">${fmt(t.profit)}</span></div>
   </div></div>
   ${body}`;
-  renderFx();
+  setLive('on');
 }
 
-function renderAsset(id){
-  const a=DATA.assets.find(x=>x.id===id); if(!a){return render();}
-  const c=DATA.categories.find(x=>x.id===a.categoryId);
-  const snaps=[...a.snapshots].sort((x,y)=>x.date<y.date?-1:1);
-  const series=snaps.map(s=>({date:s.date,value:s.value*rate(a.currency)}));
-  const l=assetLatest(a);
+function renderClasses(){
+  const rows=DATA.classes.map((c,i)=>{
+    const val=DATA.instruments.filter(x=>x.classId===c.id).reduce((a,x)=>a+instValue(x),0);
+    return `<div class="cls-row">
+      <span class="sw" style="background:${c.color}"></span>
+      <span class="nm">${esc(c.name)}</span>
+      <span class="tgt">${fmt(val)}</span>
+      <label style="font-size:11px;color:var(--faint)">cel %</label>
+      <input data-tgt="${c.id}" inputmode="decimal" value="${c.target||0}">
+      <button class="edit" data-action="delclass" data-id="${c.id}" title="Usuń"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6"/></svg></button>
+    </div>`;
+  }).join('');
+  const sumT=DATA.classes.reduce((a,c)=>a+(+c.target||0),0);
   document.getElementById('view').innerHTML=`
-  <div class="topbar">
-    <div><div class="eyebrow"><button data-tab="${c.id}" style="color:var(--accent);font-size:11px;letter-spacing:.14em">← ${c.name}</button></div><h2>${a.name}</h2></div>
-    <button class="btn pr" data-action="addsnap" data-asset="${a.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj wpis</button>
-  </div>
-  <div class="ledger"><div class="row">
-    <div class="cell"><span class="lbl">Aktualny stan</span><span class="v num">${fmt(l.value,true)}</span></div>
-    <div class="div"></div>
-    <div class="cell sub"><span class="lbl">Wpłacone</span><span class="v num">${fmt(l.invested,true)}</span></div>
-    <div class="cell sub"><span class="lbl">Wzrost</span><span class="v num ${l.growth>=0?'pos':'neg'}">${fmt(l.growth,true)}</span><span class="num ${l.growth>=0?'pos':'neg'}" style="font-size:13px">${pct(l.gpct)}</span></div>
-  </div></div>
-  <div class="card" style="margin-bottom:18px"><h3>Wartość w czasie</h3><div class="sub">&nbsp;</div>${lineChart(series,{})}</div>
-  <div class="card"><h3>Historia wpisów</h3><div class="sub">${snaps.length} wpisów</div>
-    <table><thead><tr><th>Data</th><th>Wpłacone</th><th>Aktualny stan</th><th>Wzrost</th><th>Wzrost %</th><th></th></tr></thead><tbody>
-    ${snaps.slice().reverse().map(s=>{const g=s.value-s.invested,gp=s.invested?g/s.invested*100:0;
-      return `<tr><td>${fmtDate(s.date)}</td><td>${fmt(s.invested,true)}</td><td>${fmt(s.value,true)}</td><td class="${g>=0?'pos':'neg'}">${fmt(g,true)}</td><td class="${g>=0?'pos':'neg'}">${pct(gp)}</td><td class="act"><button class="row-del" data-action="delsnap" data-asset="${a.id}" data-date="${s.date}" title="Usuń wpis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/></svg></button></td></tr>`;}).join('')}
-    </tbody></table></div>`;
+  <div class="topbar"><div><div class="eyebrow">Ustawienia</div><h2>Klasy aktywów</h2></div>
+    <button class="btn pr" data-action="addclass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nowa klasa</button></div>
+  <div class="hint-box" style="margin-bottom:16px">Klasy grupują Twoje aktywa (Akcje, Krypto, Metale, Nieruchomości…). Docelowy % to Twój plan — na jego podstawie liczę podpowiedź „ile dokupić", żeby wrócić do założeń. Suma celów: <b class="num" style="color:${Math.abs(sumT-100)<0.5?'var(--pos)':'var(--gold-2)'}">${sumT}%</b>.</div>
+  <div class="card"><div class="cls-list">${rows}</div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end"><button class="btn" data-action="savetargets">Zapisz cele</button></div></div>`;
 }
 
-function renderFx(){
-  const el=document.getElementById('fx'); if(!el) return;
-  el.innerHTML=`<div class="chip"><span class="dot"></span>USD/PLN <b>${FX.USD.toFixed(2)}</b></div>
-    <div class="chip">EUR/PLN <b>${FX.EUR.toFixed(2)}</b></div>`;
+function renderSettings(){
+  const s=DATA.settings;
+  document.getElementById('view').innerHTML=`
+  <div class="topbar"><div><div class="eyebrow">Ustawienia</div><h2>Ustawienia</h2></div></div>
+  <div class="card" style="max-width:620px">
+    <h3>Ceny na żywo</h3><div class="sub">klucze API — wklejasz raz, trzymane w Twojej prywatnej bazie</div>
+    <div class="field"><label>Klucz Twelve Data (akcje, ETF, metale, GPW)</label>
+      <input id="set-td" placeholder="wklej klucz" value="${esc(s.twelveKey||'')}"></div>
+    <div class="hint-box" style="margin:-4px 0 16px">Darmowy klucz: załóż konto na <b>twelvedata.com</b> → sekcja API → skopiuj „API Key". Darmowy limit (ok. 800 zapytań/dzień) w zupełności wystarcza. Kryptowaluty i kursy walut działają bez żadnego klucza.</div>
+    <div class="field"><label>Klucz CoinGecko Demo (opcjonalnie — stabilniejsze krypto)</label>
+      <input id="set-gecko" placeholder="opcjonalnie" value="${esc(s.geckoKey||'')}"></div>
+    <div style="display:flex;gap:10px;margin-top:8px"><button class="btn pr" data-action="savesettings">Zapisz</button>
+      <button class="btn ghost" data-action="refresh">Przetestuj — odśwież ceny</button></div>
+  </div>
+  <div class="card" style="max-width:620px;margin-top:16px">
+    <h3>Dane</h3><div class="sub">kopia zapasowa i konto</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn ghost" data-action="export">Pobierz kopię (JSON)</button>
+      <button class="btn ghost" data-action="logout">Wyloguj</button>
+    </div>
+  </div>`;
 }
 
 function render(){
-  renderNav();
-  const who=document.getElementById('who'); if(who&&currentUser) who.textContent=currentUser.email;
-  if(view.asset) renderAsset(view.asset);
-  else if(view.tab==='overview') renderOverview();
-  else renderCategory(view.tab);
+  if(!DATA) return;
+  renderSidebar();
+  if(view.screen==='wealth') renderWealth();
+  else if(view.screen==='pf') renderPortfolio(view.pfId);
+  else if(view.screen==='classes') renderClasses();
+  else if(view.screen==='settings') renderSettings();
 }
 
 /* ============================================================
-   MODALS
+   MODALE
    ============================================================ */
 const ov=document.getElementById('ov'), modalEl=document.getElementById('modal');
 function openModal(html){ modalEl.innerHTML=html; ov.classList.add('on'); }
-function closeModal(){ ov.classList.remove('on'); }
+function closeModal(){ ov.classList.remove('on'); modalEl.innerHTML=''; }
 ov.addEventListener('click',e=>{ if(e.target===ov) closeModal(); });
 
-function modalAddAsset(cat){
-  const opts=DATA.categories.map(c=>`<option value="${c.id}" ${c.id===cat?'selected':''}>${c.name}</option>`).join('');
-  openModal(`<h3>Dodaj aktywo</h3>
-    <div class="field"><label>Nazwa</label><input id="m-name" placeholder="np. Ethereum, Apple, Lokata X"></div>
-    <div class="field"><label>Kategoria</label><select id="m-cat">${opts}</select></div>
-    <div class="field"><label>Waluta</label><select id="m-cur"><option>PLN</option><option>USD</option><option>EUR</option></select></div>
-    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="saveasset">Dodaj</button></div>`);
-}
-function modalAddSnap(assetId){
-  const today=new Date().toISOString().slice(0,10);
-  openModal(`<h3>Nowy wpis miesięczny</h3>
-    <div class="field"><label>Data</label><input id="m-date" type="date" value="${today}"></div>
-    <div class="field num"><label>Wpłacone (łącznie)</label><input id="m-inv" inputmode="decimal" placeholder="np. 31250"></div>
-    <div class="field num"><label>Aktualny stan</label><input id="m-val" inputmode="decimal" placeholder="np. 55750"></div>
-    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savesnap" data-asset="${assetId}">Zapisz</button></div>`);
-}
-function modalAddCat(){
-  openModal(`<h3>Nowa kategoria</h3>
-    <div class="field"><label>Nazwa</label><input id="m-name" placeholder="np. Złoto, Lokaty, Nieruchomości"></div>
-    <div class="field"><label>Ikona</label><select id="m-icon">
-      <option value="gold">Złoto / metale</option><option value="bond">Lokaty / obligacje</option>
-      <option value="realestate">Nieruchomości</option><option value="cash">Gotówka</option>
-      <option value="stocks">Akcje / ETF</option><option value="crypto">Krypto</option><option value="generic">Inne</option></select></div>
-    <div class="field num"><label>Cel alokacji (%)</label><input id="m-tgt" inputmode="decimal" placeholder="np. 10"></div>
-    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savecat">Dodaj</button></div>`);
-}
-function modalTargets(){
-  openModal(`<h3>Alokacja docelowa</h3>
-    <div class="sub" style="color:var(--muted);margin:-8px 0 16px;font-size:13px">Jaki % portfela chcesz trzymać w każdej kategorii.</div>
-    ${DATA.categories.map(c=>`<div class="field num"><label>${c.name}</label><input data-tgt="${c.id}" inputmode="decimal" value="${DATA.targets[c.id]||0}"></div>`).join('')}
-    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savetargets">Zapisz</button></div>`);
+let pick=null; // wybrany instrument z wyszukiwarki
+
+function classOptions(sel){ return DATA.classes.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join(''); }
+function pfOptions(sel){ return DATA.portfolios.map(p=>`<option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)}</option>`).join(''); }
+
+function modalAddInst(pfId){
+  pick=null;
+  openModal(`<h3>Dodaj pozycję</h3><div class="msub">Wybierz typ — cena policzy się sama lub wpiszesz ją ręcznie.</div>
+    <div class="seg" id="inst-type">
+      <button data-t="krypto" class="on">Krypto</button>
+      <button data-t="akcje">Akcje / ETF</button>
+      <button data-t="metal">Metal</button>
+      <button data-t="reczne">Ręczne</button>
+    </div>
+    <div id="inst-body"></div>`);
+  buildInstBody('krypto', pfId);
+  document.getElementById('inst-type').addEventListener('click',e=>{
+    const b=e.target.closest('[data-t]'); if(!b) return;
+    document.querySelectorAll('#inst-type button').forEach(x=>x.classList.toggle('on',x===b));
+    pick=null; buildInstBody(b.dataset.t, pfId);
+  });
 }
 
-function modalDelSnap(assetId,date){
-  openModal(`<h3>Usunąć wpis?</h3>
-    <div style="color:var(--muted);font-size:13.5px;margin:-6px 0 4px">Wpis z dnia <b style="color:var(--ink)">${fmtDate(date)}</b> zostanie trwale usunięty. Tej operacji nie można cofnąć.</div>
-    <div class="modal-foot"><button class="btn" data-action="closemodal">Anuluj</button><button class="btn danger" data-action="confirmdelsnap" data-asset="${assetId}" data-date="${date}">Usuń wpis</button></div>`);
+function buildInstBody(type, pfId){
+  const body=document.getElementById('inst-body');
+  const commonTail = (cls)=>`
+    <div class="frow">
+      <div class="field"><label>Portfel</label><select id="i-pf">${pfOptions(pfId)}</select></div>
+      <div class="field"><label>Klasa</label><select id="i-class">${classOptions(cls)}</select></div>
+    </div>`;
+  if(type==='reczne'){
+    body.innerHTML=`
+      <div class="field"><label>Nazwa</label><input id="i-name" placeholder="np. Mieszkanie Katowice, Działka, Gotówka"></div>
+      <div class="frow">
+        <div class="field num"><label>Aktualna wartość (zł)</label><input id="i-val" inputmode="decimal" placeholder="np. 520000"></div>
+        <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="i-inv" inputmode="decimal" placeholder="np. 410000"></div>
+      </div>
+      ${commonTail('nieruch')}
+      <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveinst" data-mode="manual">Dodaj</button></div></div>`;
+    return;
+  }
+  if(type==='metal'){
+    body.innerHTML=`
+      <div class="field"><label>Metal</label><select id="i-metal"><option value="XAU/USD">Złoto (uncja troy)</option><option value="XAG/USD">Srebro (uncja troy)</option><option value="XPT/USD">Platyna</option><option value="XPD/USD">Pallad</option></select></div>
+      <div class="field"><label>Nazwa (do wyświetlenia)</label><input id="i-name" placeholder="np. Złoto — sztabki"></div>
+      <div class="frow">
+        <div class="field num"><label>Ilość (uncje troy)</label><input id="i-qty" inputmode="decimal" placeholder="np. 2"></div>
+        <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="i-inv" inputmode="decimal" placeholder="np. 14000"></div>
+      </div>
+      ${commonTail('metale')}
+      <div class="hint-box" style="margin-top:2px">Cena metali pobierana w USD za uncję troy i przeliczana na złote. Wymaga klucza Twelve Data (Ustawienia).</div>
+      <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveinst" data-mode="auto" data-provider="twelvedata" data-kind="metal">Dodaj</button></div></div>`;
+    return;
+  }
+  // krypto / akcje — z wyszukiwarką
+  const isCrypto = type==='krypto';
+  body.innerHTML=`
+    <div class="field"><label>${isCrypto?'Kryptowaluta':'Akcja / ETF'}</label>
+      <input id="i-search" placeholder="${isCrypto?'szukaj: bitcoin, ethereum, solana…':'szukaj: AAPL, Apple, CDR, Orlen…'}" autocomplete="off"></div>
+    <div id="i-searchres"></div>
+    <div id="i-picked"></div>
+    <div class="frow">
+      <div class="field num"><label>Ilość (szt.)</label><input id="i-qty" inputmode="decimal" placeholder="np. 10"></div>
+      <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="i-inv" inputmode="decimal" placeholder="np. 6500"></div>
+    </div>
+    ${commonTail(isCrypto?'krypto':'akcje')}
+    ${isCrypto?'':'<div class="hint-box" style="margin-top:2px">Akcje USA działają na darmowym kluczu Twelve Data od ręki; GPW/świat bywają ograniczone — jeśli cena się nie pobierze, walor przejdzie w tryb ręczny.</div>'}
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveinst" data-mode="auto" data-provider="${isCrypto?'coingecko':'twelvedata'}" data-kind="${type}">Dodaj</button></div></div>`;
+  const inp=document.getElementById('i-search');
+  let tmr;
+  inp.addEventListener('input',()=>{ clearTimeout(tmr); tmr=setTimeout(()=> isCrypto?searchCrypto(inp.value):searchStock(inp.value), 320); });
 }
+
+async function searchCrypto(q){
+  const box=document.getElementById('i-searchres'); if(!q||q.length<2){box.innerHTML='';return;}
+  box.innerHTML=`<div class="search-res"><div class="sr">Szukam…</div></div>`;
+  try{
+    const key=DATA.settings.geckoKey?('&x_cg_demo_api_key='+encodeURIComponent(DATA.settings.geckoKey)):'';
+    const r=await fetch('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(q)+key);
+    const j=await r.json(); const coins=(j.coins||[]).slice(0,8);
+    box.innerHTML=`<div class="search-res">${coins.map(c=>`<div class="sr" data-pick='${esc(JSON.stringify({provider:'coingecko',symbol:c.id,name:c.name,currency:'PLN'}))}'>
+      ${c.thumb?`<img src="${c.thumb}">`:''}<div><b>${esc(c.name)}</b> <span class="tk">${esc((c.symbol||'').toUpperCase())}</span></div></div>`).join('')||'<div class="sr">Brak wyników</div>'}</div>`;
+  }catch(e){ box.innerHTML=`<div class="hint-box">Nie udało się wyszukać. Spróbuj ponownie.</div>`; }
+}
+async function searchStock(q){
+  const box=document.getElementById('i-searchres'); if(!q||q.length<1){box.innerHTML='';return;}
+  const key=DATA.settings.twelveKey;
+  if(!key){ box.innerHTML=`<div class="hint-box">Aby wyszukiwać akcje, dodaj klucz Twelve Data w Ustawieniach. Możesz też wpisać sam ticker (np. AAPL) i dodać — cena pobierze się przy odświeżeniu.</div>
+    <div class="sr" data-pick='${esc(JSON.stringify({provider:'twelvedata',symbol:q.toUpperCase(),name:q.toUpperCase(),currency:'USD',exchange:''}))}'>Użyj „<b>${esc(q.toUpperCase())}</b>" jako ticker</div>`; return; }
+  box.innerHTML=`<div class="search-res"><div class="sr">Szukam…</div></div>`;
+  try{
+    const r=await fetch('https://api.twelvedata.com/symbol_search?symbol='+encodeURIComponent(q)+'&outputsize=10&apikey='+encodeURIComponent(key));
+    const j=await r.json(); const d=(j.data||[]).slice(0,9);
+    box.innerHTML=`<div class="search-res">${d.map(x=>`<div class="sr" data-pick='${esc(JSON.stringify({provider:'twelvedata',symbol:x.symbol,name:x.instrument_name||x.symbol,currency:x.currency||'USD',exchange:x.exchange||''}))}'>
+      <div><b>${esc(x.symbol)}</b> <span class="tk">${esc((x.instrument_name||'').slice(0,34))}</span><br><span class="tk">${esc(x.exchange||'')} · ${esc(x.currency||'')}</span></div></div>`).join('')||'<div class="sr">Brak wyników</div>'}</div>`;
+  }catch(e){ box.innerHTML=`<div class="hint-box">Nie udało się wyszukać.</div>`; }
+}
+function choosePick(obj){
+  pick=obj;
+  document.getElementById('i-searchres').innerHTML='';
+  document.getElementById('i-picked').innerHTML=`<div class="picked"><span>✓ ${esc(obj.name)} <span class="tk num">${esc(obj.symbol)}${obj.exchange?' · '+esc(obj.exchange):''}</span></span><span class="x" data-action="unpick">zmień</span></div>`;
+  const nm=document.getElementById('i-search'); if(nm) nm.value=obj.name;
+}
+
+function modalEditInst(id){
+  const i=DATA.instruments.find(x=>x.id===id); if(!i) return;
+  const auto=i.mode==='auto';
+  openModal(`<h3>Edytuj pozycję</h3><div class="msub">${auto?'<span class="tag live">na żywo</span> '+esc(i.symbol):'<span class="tag man">ręczne</span>'}</div>
+    <div class="field"><label>Nazwa</label><input id="e-name" value="${esc(i.name)}"></div>
+    ${auto?`<div class="frow"><div class="field num"><label>Ilość</label><input id="e-qty" inputmode="decimal" value="${i.quantity||0}"></div>
+      <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="e-inv" inputmode="decimal" value="${i.invested||0}"></div></div>`
+    :`<div class="frow"><div class="field num"><label>Aktualna wartość (zł)</label><input id="e-val" inputmode="decimal" value="${i.manualValue||0}"></div>
+      <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="e-inv" inputmode="decimal" value="${i.invested||0}"></div></div>`}
+    <div class="frow"><div class="field"><label>Portfel</label><select id="e-pf">${pfOptions(i.portfolioId)}</select></div>
+      <div class="field"><label>Klasa</label><select id="e-class">${classOptions(i.classId)}</select></div></div>
+    <div class="modal-foot"><button class="btn danger" data-action="delinst" data-id="${id}">Usuń</button>
+      <div class="rt"><button class="btn ghost" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="saveedit" data-id="${id}">Zapisz</button></div></div>`);
+}
+
+function modalPf(pfId){
+  const p=pfId?DATA.portfolios.find(x=>x.id===pfId):null;
+  openModal(`<h3>${p?'Edytuj portfel':'Nowy portfel'}</h3>
+    <div class="field"><label>Nazwa</label><input id="pf-name" placeholder="np. Polska, US Dywidendy, Krypto" value="${p?esc(p.name):''}"></div>
+    <div class="frow"><div class="field"><label>Skrót (2 litery)</label><input id="pf-badge" maxlength="2" placeholder="PL" value="${p?esc(p.badge||''):''}"></div>
+      <div class="field"><label>Kolor</label><input id="pf-color" type="color" value="${p?p.color:'#C9A24B'}" style="height:44px;padding:4px"></div></div>
+    <div class="modal-foot">${p?`<button class="btn danger" data-action="delpf" data-pf="${pfId}">Usuń portfel</button>`:'<span></span>'}
+      <div class="rt"><button class="btn ghost" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savepf" ${p?`data-pf="${pfId}"`:''}>Zapisz</button></div></div>`);
+}
+function modalClass(){
+  openModal(`<h3>Nowa klasa aktywów</h3>
+    <div class="field"><label>Nazwa</label><input id="cl-name" placeholder="np. Obligacje, Surowce, REIT-y"></div>
+    <div class="frow"><div class="field"><label>Kolor</label><input id="cl-color" type="color" value="#5B8FD6" style="height:44px;padding:4px"></div>
+      <div class="field num"><label>Cel alokacji (%)</label><input id="cl-tgt" inputmode="decimal" placeholder="np. 10"></div></div>
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveclass">Dodaj</button></div></div>`);
+}
+function modalConfirm(title,msg,action,data){
+  openModal(`<h3>${title}</h3><div class="msub" style="font-size:13.5px;color:var(--muted);margin-bottom:2px">${msg}</div>
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn danger" data-action="${action}" ${Object.entries(data||{}).map(([k,v])=>`data-${k}="${esc(v)}"`).join(' ')}>Usuń</button></div></div>`);
+}
+
+/* ============================================================
+   AKCJE (delegacja)
+   ============================================================ */
 document.addEventListener('click',async e=>{
-  const tabBtn=e.target.closest('[data-tab]');
-  if(tabBtn){ view={tab:tabBtn.dataset.tab,asset:null}; render(); return; }
-  const assetRow=e.target.closest('[data-asset]');
-  if(assetRow && !e.target.closest('[data-action]')){ view={tab:view.tab,asset:assetRow.dataset.asset}; render(); return; }
+  const navBtn=e.target.closest('[data-nav]');
+  if(navBtn){ view={screen:navBtn.dataset.nav,pfId:null}; render(); return; }
+  const pfBtn=e.target.closest('[data-pf]');
+  if(pfBtn && !e.target.closest('[data-action]')){ view={screen:'pf',pfId:pfBtn.dataset.pf}; render(); return; }
+  const sr=e.target.closest('[data-pick]');
+  if(sr){ try{ choosePick(JSON.parse(sr.dataset.pick)); }catch(_){} return; }
   const act=e.target.closest('[data-action]'); if(!act) return;
-  const a=act.dataset.action;
-  if(a==='lock') doLogout();
-  if(a==='closemodal') closeModal();
-  if(a==='addasset') modalAddAsset(act.dataset.cat);
-  if(a==='addcat') modalAddCat();
-  if(a==='addsnap') modalAddSnap(act.dataset.asset);
-  if(a==='delsnap') modalDelSnap(act.dataset.asset,act.dataset.date);
-  if(a==='confirmdelsnap'){
-    const asset=DATA.assets.find(x=>x.id===act.dataset.asset);
-    asset.snapshots=asset.snapshots.filter(s=>s.date!==act.dataset.date);
-    await save(); closeModal(); render(); toast('Usunięto wpis');
+  const a=act.dataset.action, d=act.dataset;
+
+  if(a==='logout'){ if(supabase) await supabase.auth.signOut(); return; }
+  if(a==='closemodal'){ closeModal(); return; }
+  if(a==='refresh'){ refreshPrices(false); return; }
+  if(a==='unpick'){ pick=null; document.getElementById('i-picked').innerHTML=''; return; }
+
+  if(a==='addinst') return modalAddInst(d.pf||DATA.portfolios[0]?.id);
+  if(a==='editinst') return modalEditInst(d.id);
+  if(a==='addpf') return modalPf(null);
+  if(a==='editpf') return modalPf(d.pf);
+  if(a==='addclass') return modalClass();
+
+  if(a==='export'){ const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
+    const u=URL.createObjectURL(blob); const el=document.createElement('a'); el.href=u; el.download='byk-kopia-'+today()+'.json'; el.click(); URL.revokeObjectURL(u); return; }
+
+  if(a==='saveinst'){
+    const pf=document.getElementById('i-pf').value, cls=document.getElementById('i-class').value;
+    const inv=parseNum(document.getElementById('i-inv')?.value);
+    if(d.mode==='manual'){
+      const name=document.getElementById('i-name').value.trim(); if(!name) return toast('Podaj nazwę');
+      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name,mode:'manual',manualValue:parseNum(document.getElementById('i-val').value),invested:inv});
+    } else if(d.kind==='metal'){
+      const sym=document.getElementById('i-metal').value;
+      const name=(document.getElementById('i-name').value.trim())||sym;
+      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name,mode:'auto',provider:'twelvedata',symbol:sym,exchange:'',currency:'USD',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
+    } else {
+      if(!pick) return toast('Wyszukaj i wybierz walor z listy');
+      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name:pick.name,mode:'auto',provider:pick.provider,symbol:pick.symbol,exchange:pick.exchange||'',currency:pick.currency||'PLN',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
+    }
+    await save(); closeModal(); view={screen:'pf',pfId:pf}; render(); toast('Dodano — odświeżam ceny'); refreshPrices(true);
+    return;
   }
-  if(a==='targets') modalTargets();
-  if(a==='saveasset'){
-    const name=document.getElementById('m-name').value.trim(); if(!name) return toast('Podaj nazwę');
-    const id='a'+Date.now();
-    DATA.assets.push({id,name,categoryId:document.getElementById('m-cat').value,currency:document.getElementById('m-cur').value,snapshots:[]});
-    await save(); closeModal(); view={tab:document.getElementById('m-cat').value,asset:id}; render(); toast('Dodano aktywo');
+  if(a==='saveedit'){
+    const i=DATA.instruments.find(x=>x.id===d.id); if(!i) return;
+    i.name=document.getElementById('e-name').value.trim()||i.name;
+    i.invested=parseNum(document.getElementById('e-inv').value);
+    i.portfolioId=document.getElementById('e-pf').value; i.classId=document.getElementById('e-class').value;
+    if(i.mode==='auto') i.quantity=parseNum(document.getElementById('e-qty').value);
+    else i.manualValue=parseNum(document.getElementById('e-val').value);
+    await save(); closeModal(); render(); toast('Zapisano'); return;
   }
-  if(a==='savesnap'){
-    const asset=DATA.assets.find(x=>x.id===act.dataset.asset);
-    const date=document.getElementById('m-date').value;
-    const inv=parseNum(document.getElementById('m-inv').value), val=parseNum(document.getElementById('m-val').value);
-    if(!date) return toast('Podaj datę');
-    asset.snapshots=asset.snapshots.filter(s=>s.date!==date);
-    asset.snapshots.push({date,invested:inv,value:val});
-    await save(); closeModal(); render(); toast('Zapisano wpis');
+  if(a==='delinst'){ modalConfirm('Usunąć pozycję?','Pozycja zostanie trwale usunięta.','confirmdelinst',{id:d.id}); return; }
+  if(a==='confirmdelinst'){ DATA.instruments=DATA.instruments.filter(x=>x.id!==d.id); await save(); closeModal(); render(); toast('Usunięto'); return; }
+
+  if(a==='savepf'){
+    const name=document.getElementById('pf-name').value.trim(); if(!name) return toast('Podaj nazwę');
+    const badge=(document.getElementById('pf-badge').value.trim()||name.slice(0,2)).toUpperCase();
+    const color=document.getElementById('pf-color').value;
+    if(d.pf){ const p=DATA.portfolios.find(x=>x.id===d.pf); Object.assign(p,{name,badge,color}); }
+    else { const id=uid('p_'); DATA.portfolios.push({id,name,badge,color}); view={screen:'pf',pfId:id}; }
+    await save(); closeModal(); render(); toast('Zapisano'); return;
   }
-  if(a==='savecat'){
-    const name=document.getElementById('m-name').value.trim(); if(!name) return toast('Podaj nazwę');
-    const id='c'+Date.now();
-    DATA.categories.push({id,name,icon:document.getElementById('m-icon').value});
-    DATA.targets[id]=parseNum(document.getElementById('m-tgt').value);
-    await save(); closeModal(); view={tab:id,asset:null}; render(); toast('Dodano kategorię');
+  if(a==='delpf'){ modalConfirm('Usunąć portfel?','Portfel i wszystkie jego pozycje zostaną usunięte.','confirmdelpf',{pf:d.pf}); return; }
+  if(a==='confirmdelpf'){ DATA.portfolios=DATA.portfolios.filter(x=>x.id!==d.pf);
+    DATA.instruments=DATA.instruments.filter(x=>x.portfolioId!==d.pf); delete DATA.history[d.pf];
+    await save(); closeModal(); view={screen:'wealth'}; render(); toast('Usunięto portfel'); return; }
+
+  if(a==='saveclass'){
+    const name=document.getElementById('cl-name').value.trim(); if(!name) return toast('Podaj nazwę');
+    DATA.classes.push({id:uid('c_'),name,color:document.getElementById('cl-color').value,target:parseNum(document.getElementById('cl-tgt').value)});
+    await save(); closeModal(); render(); toast('Dodano klasę'); return;
   }
-  if(a==='savetargets'){
-    document.querySelectorAll('[data-tgt]').forEach(i=>DATA.targets[i.dataset.tgt]=parseNum(i.value));
-    await save(); closeModal(); render(); toast('Zaktualizowano cele');
+  if(a==='delclass'){
+    const used=DATA.instruments.some(x=>x.classId===d.id);
+    if(used) return toast('Najpierw przenieś pozycje z tej klasy');
+    DATA.classes=DATA.classes.filter(x=>x.id!==d.id); await save(); render(); toast('Usunięto klasę'); return;
   }
+  if(a==='savetargets'){ document.querySelectorAll('[data-tgt]').forEach(inp=>{ const c=DATA.classes.find(x=>x.id===inp.dataset.tgt); if(c)c.target=parseNum(inp.value); });
+    await save(); render(); toast('Zapisano cele'); return; }
+  if(a==='savesettings'){ DATA.settings.twelveKey=document.getElementById('set-td').value.trim();
+    DATA.settings.geckoKey=document.getElementById('set-gecko').value.trim(); await save(); toast('Zapisano'); refreshPrices(true); return; }
 });
 
 let toastT;
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2000); }
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400); }
 
 /* ============================================================
-   FX — pobieranie kursów (frankfurter.app, darmowe, bez klucza)
-   ============================================================ */
-async function fetchFx(){
-  try{
-    const r=await fetch('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR');
-    const j=await r.json();
-    if(j&&j.rates){ FX.USD=1/j.rates.USD; FX.EUR=1/j.rates.EUR; renderFx(); }
-  }catch(e){ /* offline / sandbox — zostają wartości domyślne */ }
-}
-
-/* ============================================================
-   AUTH (Supabase — e-mail + hasło)
+   AUTH
    ============================================================ */
 const lockEl=document.getElementById('lock'), appEl=document.getElementById('app');
 function hint(msg,ok){ const h=document.getElementById('lock-hint'); h.textContent=msg||''; h.className='lock-hint'+(msg?(ok?' ok':' err'):''); }
-
-function setAuthMode(m){
-  authMode=m;
-  document.getElementById('lock-title').textContent = m==='login'?'Zaloguj się':'Załóż konto';
-  document.getElementById('au-submit').textContent  = m==='login'?'Zaloguj się':'Zarejestruj się';
-  document.getElementById('au-toggle').textContent  = m==='login'?'Nie masz konta? Załóż je':'Masz już konto? Zaloguj się';
-  document.getElementById('au-pass').setAttribute('autocomplete', m==='login'?'current-password':'new-password');
-  hint('');
-}
-
-function authErr(m){
-  m=(m||'').toLowerCase();
+function setAuthMode(m){ authMode=m;
+  document.getElementById('lock-title').textContent=m==='login'?'Zaloguj się':'Załóż konto';
+  document.getElementById('au-submit').textContent=m==='login'?'Zaloguj się':'Zarejestruj się';
+  document.getElementById('au-toggle').textContent=m==='login'?'Nie masz konta? Załóż je':'Masz już konto? Zaloguj się';
+  document.getElementById('au-pass').setAttribute('autocomplete',m==='login'?'current-password':'new-password'); hint(''); }
+function authErr(m){ m=(m||'').toLowerCase();
   if(m.includes('invalid login')) return 'Błędny e-mail lub hasło';
-  if(m.includes('already registered')||m.includes('already been registered')) return 'Konto już istnieje — zaloguj się';
-  if(m.includes('email not confirmed')) return 'Potwierdź e-mail, zanim się zalogujesz';
-  if(m.includes('password should be')||m.includes('at least 6')) return 'Hasło musi mieć min. 6 znaków';
-  if(m.includes('failed to fetch')||m.includes('network')||m.includes('fetch')) return 'Brak połączenia z Supabase — sprawdź URL i klucz w kodzie';
-  return m || 'Coś poszło nie tak';
-}
-
+  if(m.includes('already')) return 'Konto już istnieje — zaloguj się';
+  if(m.includes('not confirmed')) return 'Potwierdź e-mail, zanim się zalogujesz';
+  if(m.includes('at least 6')||m.includes('password should')) return 'Hasło musi mieć min. 6 znaków';
+  if(m.includes('fetch')||m.includes('network')) return 'Brak połączenia z Supabase — sprawdź URL i klucz w kodzie';
+  return m||'Coś poszło nie tak'; }
 async function doAuth(){
   if(!CONFIG_OK){ hint('Uzupełnij SUPABASE_URL i klucz w kodzie (sekcja KONFIGURACJA).'); return; }
-  const email=document.getElementById('au-email').value.trim();
-  const pass =document.getElementById('au-pass').value;
+  const email=document.getElementById('au-email').value.trim(), pass=document.getElementById('au-pass').value;
   if(!email||!pass) return hint('Podaj e-mail i hasło');
-  const btn=document.getElementById('au-submit'); btn.disabled=true; const orig=btn.textContent; btn.textContent='…';
+  const btn=document.getElementById('au-submit'); btn.disabled=true; btn.textContent='…';
   try{
-    if(authMode==='login'){
-      const { error } = await supabase.auth.signInWithPassword({ email, password:pass });
-      if(error) throw error;
-      // unlock obsłuży onAuthStateChange
-    }else{
-      if(pass.length<6) throw new Error('password should be at least 6');
-      const { data, error } = await supabase.auth.signUp({ email, password:pass });
-      if(error) throw error;
-      if(data.session){ /* zalogowany od razu (potwierdzenie e-mail wyłączone) */ }
-      else { hint('Konto założone. Sprawdź e-mail i potwierdź, potem zaloguj się.', true); setAuthMode('login'); }
-    }
+    if(authMode==='login'){ const {error}=await supabase.auth.signInWithPassword({email,password:pass}); if(error) throw error; }
+    else{ if(pass.length<6) throw new Error('at least 6'); const {data,error}=await supabase.auth.signUp({email,password:pass}); if(error) throw error;
+      if(!data.session){ hint('Konto założone. Sprawdź e-mail i potwierdź, potem zaloguj się.',true); setAuthMode('login'); } }
   }catch(e){ hint(authErr(e.message)); }
-  finally{ btn.disabled=false; btn.textContent = authMode==='login'?'Zaloguj się':'Zarejestruj się'; }
+  finally{ btn.disabled=false; btn.textContent=authMode==='login'?'Zaloguj się':'Zarejestruj się'; }
 }
+async function unlock(){ lockEl.style.display='none'; appEl.style.display='block';
+  await loadData(); view={screen:'wealth',pfId:null}; render(); await fetchFx(); render(); refreshPrices(true); }
+function showLock(){ appEl.style.display='none'; lockEl.style.display='flex'; DATA=null;
+  const p=document.getElementById('au-pass'); if(p)p.value=''; setAuthMode('login'); }
 
-async function unlock(){
-  lockEl.style.display='none'; appEl.style.display='block';
-  await loadData(); render(); fetchFx();
-}
-async function doLogout(){ if(supabase) await supabase.auth.signOut(); }
-function showLock(){
-  appEl.style.display='none'; lockEl.style.display='flex';
-  DATA=null; view={tab:'overview',asset:null};
-  const p=document.getElementById('au-pass'); if(p) p.value='';
-  setAuthMode('login');
-}
+document.getElementById('au-submit').addEventListener('click',doAuth);
+document.getElementById('au-toggle').addEventListener('click',()=>setAuthMode(authMode==='login'?'signup':'login'));
+document.getElementById('au-email').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('au-pass').focus();});
+document.getElementById('au-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doAuth();});
 
-document.getElementById('au-submit').addEventListener('click', doAuth);
-document.getElementById('au-toggle').addEventListener('click', ()=> setAuthMode(authMode==='login'?'signup':'login'));
-document.getElementById('au-email').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('au-pass').focus(); });
-document.getElementById('au-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
-
-/* ---------- start ---------- */
 (function init(){
   setAuthMode('login');
-  if(!CONFIG_OK){
-    hint('Uzupełnij SUPABASE_URL i klucz w kodzie (sekcja KONFIGURACJA na górze <script>).');
-    return;
-  }
-  supabase.auth.onAuthStateChange((_event, session)=>{
-    if(session?.user){
-      currentUser=session.user;
-      if(!started){ started=true; unlock(); }
-    }else{
-      currentUser=null;
-      if(started) started=false;
-      showLock();
-    }
+  if(!CONFIG_OK){ hint('Uzupełnij SUPABASE_URL i klucz w kodzie (sekcja KONFIGURACJA na górze <script>).'); return; }
+  supabase.auth.onAuthStateChange((_e,session)=>{
+    if(session?.user){ currentUser=session.user; if(!started){ started=true; unlock(); } }
+    else { currentUser=null; if(started) started=false; showLock(); }
   });
 })();
 </script>
+</body>
+</html>
