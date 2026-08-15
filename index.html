@@ -1,4 +1,4 @@
-<!-- Portfel — osobisty tracker inwestycji (prototyp) -->
+<!-- Portfel — osobisty tracker inwestycji · Supabase (logowanie + baza w chmurze) -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portfel</title>
@@ -21,24 +21,23 @@
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
   input,select{font-family:inherit;font-size:14px}
 
-  /* ---------- Lock screen ---------- */
+  /* ---------- Lock / login screen ---------- */
   #lock{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:50}
   .lock-card{width:min(360px,92vw);text-align:center}
   .lock-mark{width:42px;height:42px;margin:0 auto 22px;border-radius:11px;background:var(--accent);display:flex;align-items:center;justify-content:center}
   .lock-mark svg{width:22px;height:22px}
   .lock-card h1{font-size:19px;font-weight:600;margin:0 0 6px;letter-spacing:-.02em}
   .lock-card p{color:var(--muted);margin:0 0 26px;font-size:13px}
-  .pin{display:flex;gap:9px;justify-content:center;margin-bottom:20px}
-  .pin span{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--line-2);transition:.15s}
-  .pin span.on{background:var(--accent);border-color:var(--accent)}
-  .pin.err span{border-color:var(--neg);animation:shake .35s}
-  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;max-width:248px;margin:0 auto}
-  .pad button{aspect-ratio:1;border-radius:50%;background:var(--surface);font-size:19px;font-family:var(--num);color:var(--ink);border:1px solid var(--line);transition:.12s}
-  .pad button:hover{border-color:var(--line-2)}
-  .pad button:active{background:var(--accent-soft)}
-  .pad button.ghost{background:none;border:none;font-size:12px;color:var(--muted)}
-  .lock-hint{margin-top:18px;font-size:12px;color:var(--faint);min-height:16px}
+
+  .auth-form{display:flex;flex-direction:column;gap:11px;text-align:left}
+  .auth-form input{width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#fff;outline:none;font-size:14px;transition:.12s}
+  .auth-form input:focus{border-color:var(--accent)}
+  .auth-btn{justify-content:center;width:100%;padding:12px;margin-top:2px;font-size:14px}
+  .auth-btn:disabled{opacity:.6;cursor:default}
+  .auth-toggle{color:var(--muted);font-size:12.5px;margin-top:8px;text-align:center;width:100%}
+  .auth-toggle:hover{color:var(--accent)}
+  .lock-hint{min-height:18px;font-size:12.5px;text-align:center;margin-top:2px}
+  .lock-hint.err{color:var(--neg)} .lock-hint.ok{color:var(--pos)}
 
   /* ---------- App shell ---------- */
   #app{display:none;min-height:100%}
@@ -57,6 +56,7 @@
   .nav .add{color:var(--faint);font-weight:500;margin-top:6px}
   .nav .add:hover{color:var(--accent)}
   .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:12px}
+  .side-foot .who{font-size:11px;color:var(--faint);padding:2px 10px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .side-foot button{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--faint);font-size:12.5px;width:100%;text-align:left}
   .side-foot button:hover{color:var(--ink);background:var(--surface)}
 
@@ -176,19 +176,24 @@
     .nav button{white-space:nowrap;padding:8px 12px}
     .nav button .ic{display:none}
     .side-foot{flex-direction:row;border-top:none;padding-top:0;margin-left:auto}
+    .side-foot .who{display:none}
     .side-foot button span{display:none}
   }
 </style>
 
-<!-- ===================== LOCK ===================== -->
+<!-- ===================== LOCK / LOGIN ===================== -->
 <div id="lock">
   <div class="lock-card">
     <div class="lock-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-    <h1 id="lock-title">Wpisz PIN</h1>
-    <p id="lock-desc">Twój portfel jest zabezpieczony</p>
-    <div class="pin" id="pin"><span></span><span></span><span></span><span></span></div>
-    <div class="pad" id="pad"></div>
-    <div class="lock-hint" id="lock-hint"></div>
+    <h1 id="lock-title">Zaloguj się</h1>
+    <p id="lock-desc">Twój portfel jest prywatny — widzisz go tylko Ty</p>
+    <div class="auth-form">
+      <input id="au-email" type="email" placeholder="e-mail" autocomplete="email">
+      <input id="au-pass" type="password" placeholder="hasło" autocomplete="current-password">
+      <button class="btn pr auth-btn" id="au-submit">Zaloguj się</button>
+      <div class="lock-hint" id="lock-hint"></div>
+      <button class="auth-toggle" id="au-toggle">Nie masz konta? Załóż je</button>
+    </div>
   </div>
 </div>
 
@@ -202,8 +207,9 @@
       </div>
       <nav class="nav" id="nav"></nav>
       <div class="side-foot">
+        <div class="who" id="who"></div>
         <button data-action="targets"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></svg><span>Alokacja docelowa</span></button>
-        <button data-action="lock"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Zablokuj</span></button>
+        <button data-action="lock"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Wyloguj</span></button>
       </div>
     </aside>
     <main class="main" id="view"></main>
@@ -213,10 +219,23 @@
 <div class="ov" id="ov"><div class="modal" id="modal"></div></div>
 <div class="toast" id="toast"></div>
 
-<script>
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 /* ============================================================
-   Portfel — prototyp. Dane trzymane lokalnie (window.storage).
+   KONFIGURACJA SUPABASE
+   Wklej dwie wartości ze swojego projektu:
+   Supabase → Project Settings → Data API / API Keys
    ============================================================ */
+const SUPABASE_URL      = 'https://szmbjbwfpovinyfifqae.supabase.co/rest/v1/';        // np. https://abcd1234.supabase.co
+const SUPABASE_ANON_KEY = 'sb_publishable_oWU0UYB5jo7-KW88YqjcfA_f2qP2yiC';   // długi klucz "anon public"
+/* ============================================================ */
+
+const CONFIG_OK = SUPABASE_URL && SUPABASE_ANON_KEY
+  && !SUPABASE_URL.includes('WKLEJ') && !SUPABASE_ANON_KEY.includes('WKLEJ');
+const supabase = CONFIG_OK ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+let currentUser = null, authMode = 'login', started = false;
+
 const PALETTE = ['#12463A','#C58A2E','#3E6FB0','#9A5BB8','#1C7A4D','#BB4338','#5A8C7B','#B07A4A'];
 const ICONS = {
   crypto:'<path d="M9.5 6h4.2a2.8 2.8 0 0 1 0 5.6H9.5zM9.5 11.6h4.6a2.8 2.8 0 0 1 0 5.6H9.5zM9.5 6V4m0 16v-2m3-14v2m0 12v2"/>',
@@ -229,20 +248,21 @@ const ICONS = {
 };
 const CAT_ICON = id => ICONS[id] || ICONS.generic;
 
-/* ---------- storage abstraction (window.storage or memory) ---------- */
-const mem = {};
-const hasStore = typeof window!=='undefined' && window.storage && window.storage.get;
+/* ---------- storage (Supabase — jeden wiersz JSON na użytkownika) ---------- */
 const store = {
-  async get(k){ try{ if(hasStore){const r=await window.storage.get(k);return r?r.value:null;} return mem[k]??null; }catch(e){return mem[k]??null;} },
-  async set(k,v){ try{ if(hasStore){await window.storage.set(k,v);} mem[k]=v; }catch(e){mem[k]=v;} }
+  async get(){
+    const { data, error } = await supabase.from('portfolios')
+      .select('data').eq('user_id', currentUser.id).maybeSingle();
+    if(error) throw error;
+    return data ? data.data : null;
+  },
+  async set(obj){
+    const { error } = await supabase.from('portfolios')
+      .upsert({ user_id: currentUser.id, data: obj, updated_at: new Date().toISOString() },
+              { onConflict:'user_id' });
+    if(error) throw error;
+  }
 };
-
-/* ---------- crypto / pin ---------- */
-async function sha(s){
-  try{ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
-    return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
-  catch(e){ let h=0;for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0;} return 'f'+h; }
-}
 
 /* ---------- format ---------- */
 const PLN = new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:0});
@@ -289,11 +309,13 @@ function seed(){
 let DATA=null, FX={PLN:1,USD:4.05,EUR:4.30}, view={tab:'overview',asset:null};
 
 async function loadData(){
-  let d = await store.get('portfolio:v1');
-  if(!d){ d=seed(); await store.set('portfolio:v1',d); }
-  DATA = typeof d==='string'?JSON.parse(d):d;
+  let d=null;
+  try{ d = await store.get(); }
+  catch(e){ toast('Błąd wczytywania danych'); console.error(e); }
+  if(!d || !d.assets){ d = seed(); try{ await store.set(d); }catch(e){ console.error(e); } }
+  DATA = d;
 }
-async function save(){ await store.set('portfolio:v1',JSON.stringify(DATA)); }
+async function save(){ try{ await store.set(DATA); }catch(e){ toast('Nie udało się zapisać'); console.error(e); } }
 
 /* ---------- computations ---------- */
 const rate = cur => FX[cur]||1;
@@ -548,6 +570,7 @@ function renderFx(){
 
 function render(){
   renderNav();
+  const who=document.getElementById('who'); if(who&&currentUser) who.textContent=currentUser.email;
   if(view.asset) renderAsset(view.asset);
   else if(view.tab==='overview') renderOverview();
   else renderCategory(view.tab);
@@ -606,7 +629,7 @@ document.addEventListener('click',async e=>{
   if(assetRow && !e.target.closest('[data-action]')){ view={tab:view.tab,asset:assetRow.dataset.asset}; render(); return; }
   const act=e.target.closest('[data-action]'); if(!act) return;
   const a=act.dataset.action;
-  if(a==='lock') lock();
+  if(a==='lock') doLogout();
   if(a==='closemodal') closeModal();
   if(a==='addasset') modalAddAsset(act.dataset.cat);
   if(a==='addcat') modalAddCat();
@@ -661,59 +684,85 @@ async function fetchFx(){
 }
 
 /* ============================================================
-   LOCK / PIN
+   AUTH (Supabase — e-mail + hasło)
    ============================================================ */
-let pinBuf='', pinMode='enter', pinFirst='';
 const lockEl=document.getElementById('lock'), appEl=document.getElementById('app');
-function buildPad(){
-  const pad=document.getElementById('pad'); let h='';
-  [1,2,3,4,5,6,7,8,9].forEach(n=>h+=`<button data-k="${n}">${n}</button>`);
-  h+=`<button class="ghost" data-k="x">Wyczyść</button><button data-k="0">0</button><button class="ghost" data-k="del">⌫</button>`;
-  pad.innerHTML=h;
+function hint(msg,ok){ const h=document.getElementById('lock-hint'); h.textContent=msg||''; h.className='lock-hint'+(msg?(ok?' ok':' err'):''); }
+
+function setAuthMode(m){
+  authMode=m;
+  document.getElementById('lock-title').textContent = m==='login'?'Zaloguj się':'Załóż konto';
+  document.getElementById('au-submit').textContent  = m==='login'?'Zaloguj się':'Zarejestruj się';
+  document.getElementById('au-toggle').textContent  = m==='login'?'Nie masz konta? Załóż je':'Masz już konto? Zaloguj się';
+  document.getElementById('au-pass').setAttribute('autocomplete', m==='login'?'current-password':'new-password');
+  hint('');
 }
-function renderPin(){ document.querySelectorAll('#pin span').forEach((s,i)=>s.classList.toggle('on',i<pinBuf.length)); }
-async function pinSubmit(){
-  if(pinMode==='set'){
-    if(!pinFirst){ pinFirst=pinBuf; pinBuf=''; renderPin();
-      document.getElementById('lock-title').textContent='Powtórz PIN';
-      document.getElementById('lock-hint').textContent=''; return; }
-    if(pinBuf===pinFirst){ await store.set('auth:pin',await sha(pinBuf)); await unlock(); }
-    else { pinFail('PIN-y się różnią — spróbuj ponownie'); pinFirst=''; document.getElementById('lock-title').textContent='Ustaw PIN'; }
+
+function authErr(m){
+  m=(m||'').toLowerCase();
+  if(m.includes('invalid login')) return 'Błędny e-mail lub hasło';
+  if(m.includes('already registered')||m.includes('already been registered')) return 'Konto już istnieje — zaloguj się';
+  if(m.includes('email not confirmed')) return 'Potwierdź e-mail, zanim się zalogujesz';
+  if(m.includes('password should be')||m.includes('at least 6')) return 'Hasło musi mieć min. 6 znaków';
+  if(m.includes('failed to fetch')||m.includes('network')||m.includes('fetch')) return 'Brak połączenia z Supabase — sprawdź URL i klucz w kodzie';
+  return m || 'Coś poszło nie tak';
+}
+
+async function doAuth(){
+  if(!CONFIG_OK){ hint('Uzupełnij SUPABASE_URL i klucz w kodzie (sekcja KONFIGURACJA).'); return; }
+  const email=document.getElementById('au-email').value.trim();
+  const pass =document.getElementById('au-pass').value;
+  if(!email||!pass) return hint('Podaj e-mail i hasło');
+  const btn=document.getElementById('au-submit'); btn.disabled=true; const orig=btn.textContent; btn.textContent='…';
+  try{
+    if(authMode==='login'){
+      const { error } = await supabase.auth.signInWithPassword({ email, password:pass });
+      if(error) throw error;
+      // unlock obsłuży onAuthStateChange
+    }else{
+      if(pass.length<6) throw new Error('password should be at least 6');
+      const { data, error } = await supabase.auth.signUp({ email, password:pass });
+      if(error) throw error;
+      if(data.session){ /* zalogowany od razu (potwierdzenie e-mail wyłączone) */ }
+      else { hint('Konto założone. Sprawdź e-mail i potwierdź, potem zaloguj się.', true); setAuthMode('login'); }
+    }
+  }catch(e){ hint(authErr(e.message)); }
+  finally{ btn.disabled=false; btn.textContent = authMode==='login'?'Zaloguj się':'Zarejestruj się'; }
+}
+
+async function unlock(){
+  lockEl.style.display='none'; appEl.style.display='block';
+  await loadData(); render(); fetchFx();
+}
+async function doLogout(){ if(supabase) await supabase.auth.signOut(); }
+function showLock(){
+  appEl.style.display='none'; lockEl.style.display='flex';
+  DATA=null; view={tab:'overview',asset:null};
+  const p=document.getElementById('au-pass'); if(p) p.value='';
+  setAuthMode('login');
+}
+
+document.getElementById('au-submit').addEventListener('click', doAuth);
+document.getElementById('au-toggle').addEventListener('click', ()=> setAuthMode(authMode==='login'?'signup':'login'));
+document.getElementById('au-email').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('au-pass').focus(); });
+document.getElementById('au-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doAuth(); });
+
+/* ---------- start ---------- */
+(function init(){
+  setAuthMode('login');
+  if(!CONFIG_OK){
+    hint('Uzupełnij SUPABASE_URL i klucz w kodzie (sekcja KONFIGURACJA na górze <script>).');
     return;
   }
-  const saved=await store.get('auth:pin');
-  if(await sha(pinBuf)===saved){ await unlock(); } else pinFail('Błędny PIN');
-}
-function pinFail(msg){ const p=document.getElementById('pin'); p.classList.add('err');
-  document.getElementById('lock-hint').textContent=msg; setTimeout(()=>p.classList.remove('err'),350);
-  pinBuf=''; renderPin(); }
-document.getElementById('pad').addEventListener('click',e=>{
-  const b=e.target.closest('[data-k]'); if(!b) return; const k=b.dataset.k;
-  if(k==='del') pinBuf=pinBuf.slice(0,-1);
-  else if(k==='x') pinBuf='';
-  else if(pinBuf.length<4) pinBuf+=k;
-  renderPin(); document.getElementById('lock-hint').textContent='';
-  if(pinBuf.length===4) setTimeout(pinSubmit,120);
-});
-document.addEventListener('keydown',e=>{
-  if(lockEl.style.display==='none') return;
-  if(/[0-9]/.test(e.key)&&pinBuf.length<4){pinBuf+=e.key;renderPin();if(pinBuf.length===4)setTimeout(pinSubmit,120);}
-  if(e.key==='Backspace'){pinBuf=pinBuf.slice(0,-1);renderPin();}
-});
-async function unlock(){ lockEl.style.display='none'; appEl.style.display='block';
-  await loadData(); render(); fetchFx(); }
-function lock(){ pinBuf='';pinFirst='';pinMode='enter';renderPin();
-  document.getElementById('lock-title').textContent='Wpisz PIN';
-  document.getElementById('lock-desc').textContent='Twój portfel jest zabezpieczony';
-  document.getElementById('lock-hint').textContent='';
-  appEl.style.display='none'; lockEl.style.display='flex'; }
-
-(async function init(){
-  buildPad(); renderPin();
-  const saved=await store.get('auth:pin');
-  if(!saved){ pinMode='set';
-    document.getElementById('lock-title').textContent='Ustaw PIN';
-    document.getElementById('lock-desc').textContent='Stwórz 4-cyfrowy kod, by zabezpieczyć dane';
-  }
+  supabase.auth.onAuthStateChange((_event, session)=>{
+    if(session?.user){
+      currentUser=session.user;
+      if(!started){ started=true; unlock(); }
+    }else{
+      currentUser=null;
+      if(started) started=false;
+      showLock();
+    }
+  });
 })();
 </script>
