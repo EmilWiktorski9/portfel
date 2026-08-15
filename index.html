@@ -189,6 +189,19 @@
   .cls-row .nm{flex:1;font-weight:500}
   .cls-row .tgt{font-family:var(--num);color:var(--muted);font-size:13px}
   .cls-row input{width:70px;padding:6px 8px;border:1px solid var(--line-2);border-radius:8px;background:var(--bg-2);text-align:right;font-family:var(--num)}
+  .del-x{width:34px;height:34px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--neg);border:1px solid var(--line-2);flex:none;background:var(--surface);transition:.12s}
+  .del-x:hover{background:var(--neg-soft);border-color:var(--neg)}
+  .del-x svg{width:17px;height:17px}
+  .pf-card.muted{opacity:.58}
+  .range-tabs{display:flex;gap:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
+  .rt-btn{padding:5px 9px;border-radius:7px;font-size:11.5px;font-weight:600;color:var(--muted);font-family:var(--num)}
+  .rt-btn.on{background:var(--surface-2);color:var(--ink)}
+  .rt-btn:hover{color:var(--ink)}
+  .chart-legend{display:flex;gap:16px;align-items:center;margin-top:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .chart-legend i{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+  .chart-legend i.dash{height:0;border-top:2px dashed var(--muted);background:none;border-radius:0}
+  .chart-legend .stat{margin-left:auto;font-family:var(--num);font-weight:600}
+  .chart-legend .stat.pos{color:var(--pos)} .chart-legend .stat.neg{color:var(--neg)}
 
   /* modal */
   .ov{position:fixed;inset:0;background:rgba(6,10,8,.6);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
@@ -285,8 +298,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 /* ============================================================
    KONFIGURACJA SUPABASE  (Supabase → Project Settings → API)
    ============================================================ */
-const SUPABASE_URL      = 'https://szmbjbwfpovinyfifqae.supabase.co';        // np. https://abcd1234.supabase.co
-const SUPABASE_ANON_KEY = 'sb_publishable_oWU0UYB5jo7-KW88YqjcfA_f2qP2yiC';   // długi klucz "anon public"
+const SUPABASE_URL      = 'WKLEJ_TUTAJ_URL';        // np. https://abcd1234.supabase.co
+const SUPABASE_ANON_KEY = 'WKLEJ_TUTAJ_ANON_KEY';   // klucz "anon public"
 /* ============================================================ */
 
 const CONFIG_OK = SUPABASE_URL && SUPABASE_ANON_KEY
@@ -370,7 +383,7 @@ const fxToPln = cur => cur==='PLN' ? 1 : (FX[cur] ? 1/FX[cur] : (cur==='USD'?4.0
 
 async function fetchFx(){
   try{
-    const r=await fetch('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR,GBP,CHF');
+    const r=await fetch('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR,GBP,CHF,JPY,NOK,SEK,DKK,CZK,CAD,AUD');
     const j=await r.json();
     if(j&&j.rates) FX={PLN:1,...j.rates};
   }catch(e){}
@@ -445,16 +458,17 @@ function instValue(i){
 }
 function instInvested(i){ return i.invested||0; }
 const pfInstruments = pfId => DATA.instruments.filter(i=>i.portfolioId===pfId);
+const isHidden = pfId => { const p=DATA.portfolios.find(x=>x.id===pfId); return !!(p&&p.hidden); };
 
 function pfTotals(pfId){
-  const list = pfId ? pfInstruments(pfId) : DATA.instruments;
+  const list = pfId ? pfInstruments(pfId) : DATA.instruments.filter(i=>!isHidden(i.portfolioId));
   let val=0, inv=0, cash=0;
   list.forEach(i=>{ const v=instValue(i); val+=v; inv+=instInvested(i);
     if(i.classId==='gotowka') cash+=v; });
   return {value:val, invested:inv, profit:val-inv, gpct:inv?(val-inv)/inv*100:0, cash, count:list.length};
 }
 function classBreakdown(pfId){
-  const list = pfId ? pfInstruments(pfId) : DATA.instruments;
+  const list = pfId ? pfInstruments(pfId) : DATA.instruments.filter(i=>!isHidden(i.portfolioId));
   const map={};
   list.forEach(i=>{ map[i.classId]=(map[i.classId]||0)+instValue(i); });
   const total=Object.values(map).reduce((a,b)=>a+b,0)||1;
@@ -463,14 +477,14 @@ function classBreakdown(pfId){
 }
 function snapshotHistory(){
   const d=today();
-  const put=(key,val)=>{ if(!DATA.history[key]) DATA.history[key]=[];
+  const put=(key,val,inv)=>{ if(!DATA.history[key]) DATA.history[key]=[];
     const arr=DATA.history[key]; const last=arr[arr.length-1];
-    if(last&&last.date===d) last.value=val; else arr.push({date:d,value:val});
-    if(arr.length>400) arr.shift(); };
-  put('total', pfTotals(null).value);
-  DATA.portfolios.forEach(p=> put(p.id, pfTotals(p.id).value));
+    if(last&&last.date===d){ last.value=val; last.invested=inv; } else arr.push({date:d,value:val,invested:inv});
+    if(arr.length>2000) arr.shift(); };
+  const tw=pfTotals(null); put('total', tw.value, tw.invested);
+  DATA.portfolios.forEach(p=>{ const tp=pfTotals(p.id); put(p.id, tp.value, tp.invested); });
 }
-const histOf = key => (DATA.history[key]||[]).map(h=>({date:h.date,value:h.value}));
+const histOf = key => (DATA.history[key]||[]).map(h=>({date:h.date,value:h.value,invested:h.invested}));
 
 /* ============================================================
    WYKRESY (SVG, bez zależności)
@@ -512,6 +526,52 @@ function spark(series,{w=110,h=34,color}={}){
   return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
+const RANGES=[{k:'1T',l:'1T',d:7},{k:'1M',l:'1M',d:31},{k:'3M',l:'3M',d:92},{k:'1R',l:'1R',d:366},{k:'5L',l:'5L',d:1827},{k:'max',l:'Max',d:1e9}];
+let chartRange='max';
+function filterRange(arr){
+  if(chartRange==='max') return arr;
+  const r=RANGES.find(x=>x.k===chartRange); const cut=Date.now()-r.d*864e5;
+  const f=arr.filter(p=>+new Date(p.date)>=cut);
+  return f.length>=2?f:arr.slice(-2);
+}
+function lineChart2(series,{w=580,h=210,color='var(--gold)'}={}){
+  if(series.length<2) return `<div class="empty" style="padding:34px"><p>Historia zbiera się od dziś — przy każdym odświeżeniu zapisuję wartość i wpłacone. Za kilka dni pojawi się wykres, a zakresy (1M, 1R, 5L) wypełnią się z czasem.</p></div>`;
+  const pad={l:8,r:8,t:16,b:24};
+  const xs=series.map(p=>+new Date(p.date));
+  const allv=[]; series.forEach(p=>{allv.push(p.value); allv.push(p.invested==null?p.value:p.invested);});
+  const ymin=Math.min(...allv),ymax=Math.max(...allv),yr=(ymax-ymin)||1;
+  const xmin=Math.min(...xs),xmax=Math.max(...xs);
+  const X=t=>pad.l+(xmax===xmin?0:(t-xmin)/(xmax-xmin))*(w-pad.l-pad.r);
+  const Y=v=>h-pad.b-((v-ymin)/yr)*(h-pad.t-pad.b);
+  const mk=key=>series.map((p,i)=>{const val=key==='inv'?(p.invested==null?p.value:p.invested):p.value;return (i?'L':'M')+X(xs[i]).toFixed(1)+' '+Y(val).toFixed(1);}).join(' ');
+  const valLine=mk('val'), invLine=mk('inv');
+  const area=valLine+` L ${X(xmax).toFixed(1)} ${h-pad.b} L ${X(xmin).toFixed(1)} ${h-pad.b} Z`;
+  const lx=X(xmax), ly=Y(series[series.length-1].value);
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="none" style="display:block">
+    <defs><linearGradient id="fg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${pad.l}" y1="${h-pad.b}" x2="${w-pad.r}" y2="${h-pad.b}" stroke="var(--line)"/>
+    <path d="${area}" fill="url(#fg2)"/>
+    <path d="${invLine}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" stroke-linejoin="round"/>
+    <path d="${valLine}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lx}" cy="${ly}" r="3.6" fill="${color}"/>
+    <text x="${pad.l}" y="${h-7}" font-size="10" fill="var(--faint)" font-family="var(--num)">${fmtDate(series[0].date)}</text>
+    <text x="${w-pad.r}" y="${h-7}" font-size="10" fill="var(--faint)" text-anchor="end" font-family="var(--num)">${fmtDate(series[series.length-1].date)}</text>
+  </svg>`;
+}
+function chartBlock(key,color,title,sub){
+  const s=filterRange(histOf(key));
+  let stat=0;
+  if(s.length>=2){ const a=s[0], b=s[s.length-1];
+    const pa=a.value-(a.invested==null?a.value:a.invested), pb=b.value-(b.invested==null?b.value:b.invested); stat=pb-pa; }
+  return `<div class="card">
+    <div class="card-head"><div><h3>${title}</h3><div class="sub">${sub}</div></div>
+      <div class="range-tabs">${RANGES.map(r=>`<button class="rt-btn ${r.k===chartRange?'on':''}" data-range="${r.k}">${r.l}</button>`).join('')}</div></div>
+    ${lineChart2(s,{color})}
+    <div class="chart-legend"><span><i style="background:${color}"></i>Wartość</span><span><i class="dash"></i>Wpłacone</span>
+      <span class="stat ${stat>=0?'pos':'neg'}">Zysk w tym zakresie: ${stat>=0?'+':''}${fmt(stat)}</span></div>
+  </div>`;
+}
+
 /* ============================================================
    KOMPONENTY
    ============================================================ */
@@ -536,7 +596,7 @@ function renderSidebar(){
     const t=pfTotals(p.id);
     return `<button class="pf-item ${view.screen==='pf'&&view.pfId===p.id?'active':''}" data-pf="${p.id}">
       <span class="pf-badge" style="background:${p.color}">${esc(p.badge||'··')}</span>
-      <span class="nm">${esc(p.name)}</span><span class="val">${fmtShort(t.value)}</span></button>`;
+      <span class="nm">${esc(p.name)}${p.hidden?' <span style="color:var(--faint);font-size:10px">· ukryty</span>':''}</span><span class="val">${fmtShort(t.value)}</span></button>`;
   }).join('') + `<button class="pf-item add-row" data-action="addpf">+ Dodaj portfel</button>`;
   document.querySelectorAll('.nav [data-nav]').forEach(b=>b.classList.toggle('active', view.screen===b.dataset.nav));
 }
@@ -562,10 +622,7 @@ function renderWealth(){
   </div></div>
 
   <div class="grid g-2">
-    <div class="card">
-      <div class="card-head"><div><h3>Wartość majątku w czasie</h3><div class="sub">suma wszystkich portfeli</div></div></div>
-      ${lineChart(hist,{})}
-    </div>
+    ${chartBlock('total','var(--gold)','Wartość majątku w czasie','suma portfeli wliczanych do majątku · wybierz zakres')}
     <div class="card">
       <h3>Podział wg klas</h3><div class="sub">obecna struktura majątku</div>
       <div class="donut-wrap">
@@ -580,8 +637,8 @@ function renderWealth(){
     <button class="btn sm ghost" data-action="addpf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nowy portfel</button>
   </div>
   <div class="pf-cards">
-    ${pfs.map(({p,t,h})=>`<div class="pf-card" data-pf="${p.id}">
-      <div class="h"><span class="pf-badge" style="background:${p.color}">${esc(p.badge||'··')}</span><b>${esc(p.name)}</b></div>
+    ${pfs.map(({p,t,h})=>`<div class="pf-card ${p.hidden?'muted':''}" data-pf="${p.id}">
+      <div class="h"><span class="pf-badge" style="background:${p.color}">${esc(p.badge||'··')}</span><b>${esc(p.name)}</b>${p.hidden?'<span class="tag" style="margin-left:auto">poza majątkiem</span>':''}</div>
       <div class="amt">${fmt(t.value)}</div>
       <div class="spark">${spark(h,{})}</div>
       <div class="meta"><span>${t.count} ${t.count===1?'pozycja':'pozycji'}</span><span class="${t.profit>=0?'':''}" style="color:${t.profit>=0?'var(--pos)':'var(--neg)'}">${pct(t.gpct)}</span></div>
@@ -611,7 +668,7 @@ function renderPortfolio(pfId){
       <button class="btn pr" data-action="addinst" data-pf="${pfId}">Dodaj pozycję</button></div>`;
   } else {
     body=`<div class="grid g-2" style="margin-bottom:18px">
-      <div class="card"><div class="card-head"><div><h3>Wartość w czasie</h3><div class="sub">${esc(p.name)}</div></div></div>${lineChart(hist,{color:p.color})}</div>
+      ${chartBlock(pfId,p.color,'Wartość w czasie','wpłacone vs wartość · wybierz zakres')}
       <div class="card"><h3>Podział portfela</h3><div class="sub">wg klas aktywów</div>
         <div class="donut-wrap"><div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid"><b>${fmtShort(t.value)}</b><span>${t.count} poz.</span></div></div>
           <div class="legend">${cats.slice(0,7).map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')}</div>
@@ -622,10 +679,15 @@ function renderPortfolio(pfId){
     </div>`;
     body+=list.map(i=>{
       const v=instValue(i), inv=instInvested(i), g=v-inv, gp=inv?g/inv*100:0;
-      const priceTxt = i.mode==='auto' ? (i.lastPrice? (nf2.format(i.lastPrice)+' '+(i.lastCur||i.currency)) : 'brak ceny') : 'ręcznie';
-      const sub = i.mode==='auto'
-        ? `<span class="tag live">na żywo</span> <span>${esc(i.symbol)}</span> · <span>${(i.quantity||0).toLocaleString('pl-PL',{maximumFractionDigits:6})} × ${priceTxt}</span>`
-        : `<span class="tag man">ręczne</span> <span>${i.lastAt?'':''}wpisana wartość</span>`;
+      let sub;
+      if(i.provider==='fx'){
+        sub=`<span class="tag live">na żywo</span> <span>${(i.quantity||0).toLocaleString('pl-PL',{maximumFractionDigits:2})} ${esc(i.symbol)}</span> · <span>kurs ${nf2.format(fxToPln(i.symbol))} zł</span>`;
+      } else if(i.mode==='auto'){
+        const priceTxt = i.lastPrice? (nf2.format(i.lastPrice)+' '+(i.lastCur||i.currency)) : 'brak ceny';
+        sub=`<span class="tag live">na żywo</span> <span>${esc(i.symbol)}</span> · <span>${(i.quantity||0).toLocaleString('pl-PL',{maximumFractionDigits:6})} × ${priceTxt}</span>`;
+      } else {
+        sub=`<span class="tag man">ręczne</span> <span>wpisana wartość</span>`;
+      }
       return `<div class="inst-row">
         ${classIco(i)}
         <div class="nm"><b>${esc(i.name)}</b><span>${sub}</span></div>
@@ -652,6 +714,9 @@ function renderPortfolio(pfId){
   <div class="topbar">
     <div><div class="eyebrow"><span class="pf-badge" style="width:16px;height:16px;background:${p.color}">${esc(p.badge||'')}</span> Portfel ${liveChip()}</div><h2>${esc(p.name)}</h2></div>
     <div class="top-actions">
+      <button class="btn ghost sm" data-action="togglehide" data-pf="${pfId}" title="${p.hidden?'Wlicz do majątku':'Ukryj z majątku'}">${p.hidden
+        ?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M6.7 6.7A10.4 10.4 0 0 0 1 12s4 7 11 7a10 10 0 0 0 4.3-1"/><path d="M9.9 4.2A10 10 0 0 1 12 5c7 0 11 7 11 7a19 19 0 0 1-2.2 3.2"/></svg>Poza majątkiem'
+        :'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>W majątku'}</button>
       <button class="btn ghost sm" data-action="editpf" data-pf="${pfId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>Edytuj</button>
       <button class="btn ghost" data-action="refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>Odśwież</button>
       <button class="btn pr" data-action="addinst" data-pf="${pfId}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Dodaj</button>
@@ -677,7 +742,7 @@ function renderClasses(){
       <span class="tgt">${fmt(val)}</span>
       <label style="font-size:11px;color:var(--faint)">cel %</label>
       <input data-tgt="${c.id}" inputmode="decimal" value="${c.target||0}">
-      <button class="edit" data-action="delclass" data-id="${c.id}" title="Usuń"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2m-1 0v14H9V6"/></svg></button>
+      <button class="del-x" data-action="delclass" data-id="${c.id}" title="Usuń klasę"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>`;
   }).join('');
   const sumT=DATA.classes.reduce((a,c)=>a+(+c.target||0),0);
@@ -741,6 +806,7 @@ function modalAddInst(pfId){
       <button data-t="krypto" class="on">Krypto</button>
       <button data-t="akcje">Akcje / ETF</button>
       <button data-t="metal">Metal</button>
+      <button data-t="waluta">Waluta</button>
       <button data-t="reczne">Ręczne</button>
     </div>
     <div id="inst-body"></div>`);
@@ -781,6 +847,20 @@ function buildInstBody(type, pfId){
       ${commonTail('metale')}
       <div class="hint-box" style="margin-top:2px">Cena metali pobierana w USD za uncję troy i przeliczana na złote. Wymaga klucza Twelve Data (Ustawienia).</div>
       <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveinst" data-mode="auto" data-provider="twelvedata" data-kind="metal">Dodaj</button></div></div>`;
+    return;
+  }
+  if(type==='waluta'){
+    const curs=['USD','EUR','GBP','CHF','JPY','NOK','SEK','DKK','CZK','CAD','AUD'];
+    body.innerHTML=`
+      <div class="field"><label>Waluta</label><select id="i-cur">${curs.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
+      <div class="field"><label>Nazwa (do wyświetlenia)</label><input id="i-name" placeholder="np. Dolary — poducha"></div>
+      <div class="frow">
+        <div class="field num"><label>Ile posiadasz (w tej walucie)</label><input id="i-qty" inputmode="decimal" placeholder="np. 2000"></div>
+        <div class="field num"><label>Wpłacone / koszt (zł)</label><input id="i-inv" inputmode="decimal" placeholder="np. 8000"></div>
+      </div>
+      ${commonTail('gotowka')}
+      <div class="hint-box" style="margin-top:2px">Kurs pobierany na żywo (frankfurter.app) — bez klucza. Wartość = ilość × aktualny kurs w złotych.</div>
+      <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveinst" data-mode="auto" data-kind="waluta">Dodaj</button></div></div>`;
     return;
   }
   // krypto / akcje — z wyszukiwarką
@@ -854,6 +934,9 @@ function modalPf(pfId){
     <div class="field"><label>Nazwa</label><input id="pf-name" placeholder="np. Polska, US Dywidendy, Krypto" value="${p?esc(p.name):''}"></div>
     <div class="frow"><div class="field"><label>Skrót (2 litery)</label><input id="pf-badge" maxlength="2" placeholder="PL" value="${p?esc(p.badge||''):''}"></div>
       <div class="field"><label>Kolor</label><input id="pf-color" type="color" value="${p?p.color:'#C9A24B'}" style="height:44px;padding:4px"></div></div>
+    <label style="display:flex;align-items:center;gap:9px;margin:6px 0 2px;font-size:13px;color:var(--muted);cursor:pointer">
+      <input type="checkbox" id="pf-inmajatek" ${(!p||!p.hidden)?'checked':''} style="width:18px;height:18px;accent-color:var(--gold)">
+      Wliczaj do majątku <span style="color:var(--faint)">(odznacz np. dla poduchy)</span></label>
     <div class="modal-foot">${p?`<button class="btn danger" data-action="delpf" data-pf="${pfId}">Usuń portfel</button>`:'<span></span>'}
       <div class="rt"><button class="btn ghost" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savepf" ${p?`data-pf="${pfId}"`:''}>Zapisz</button></div></div>`);
 }
@@ -875,6 +958,8 @@ function modalConfirm(title,msg,action,data){
 document.addEventListener('click',async e=>{
   const navBtn=e.target.closest('[data-nav]');
   if(navBtn){ view={screen:navBtn.dataset.nav,pfId:null}; render(); return; }
+  const rangeBtn=e.target.closest('[data-range]');
+  if(rangeBtn){ chartRange=rangeBtn.dataset.range; render(); return; }
   const pfBtn=e.target.closest('[data-pf]');
   if(pfBtn && !e.target.closest('[data-action]')){ view={screen:'pf',pfId:pfBtn.dataset.pf}; render(); return; }
   const sr=e.target.closest('[data-pick]');
@@ -891,6 +976,7 @@ document.addEventListener('click',async e=>{
   if(a==='editinst') return modalEditInst(d.id);
   if(a==='addpf') return modalPf(null);
   if(a==='editpf') return modalPf(d.pf);
+  if(a==='togglehide'){ const p=DATA.portfolios.find(x=>x.id===d.pf); if(p){ p.hidden=!p.hidden; await save(); render(); toast(p.hidden?'Portfel poza majątkiem':'Portfel wliczany do majątku'); } return; }
   if(a==='addclass') return modalClass();
 
   if(a==='export'){ const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
@@ -906,6 +992,10 @@ document.addEventListener('click',async e=>{
       const sym=document.getElementById('i-metal').value;
       const name=(document.getElementById('i-name').value.trim())||sym;
       DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name,mode:'auto',provider:'twelvedata',symbol:sym,exchange:'',currency:'USD',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
+    } else if(d.kind==='waluta'){
+      const cur=document.getElementById('i-cur').value;
+      const name=(document.getElementById('i-name').value.trim())||(cur+' — gotówka');
+      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name,mode:'auto',provider:'fx',symbol:cur,exchange:'',currency:cur,quantity:parseNum(document.getElementById('i-qty').value),invested:inv,lastPrice:1,lastCur:cur,lastAt:Date.now()});
     } else {
       if(!pick) return toast('Wyszukaj i wybierz walor z listy');
       DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name:pick.name,mode:'auto',provider:pick.provider,symbol:pick.symbol,exchange:pick.exchange||'',currency:pick.currency||'PLN',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
@@ -929,8 +1019,9 @@ document.addEventListener('click',async e=>{
     const name=document.getElementById('pf-name').value.trim(); if(!name) return toast('Podaj nazwę');
     const badge=(document.getElementById('pf-badge').value.trim()||name.slice(0,2)).toUpperCase();
     const color=document.getElementById('pf-color').value;
-    if(d.pf){ const p=DATA.portfolios.find(x=>x.id===d.pf); Object.assign(p,{name,badge,color}); }
-    else { const id=uid('p_'); DATA.portfolios.push({id,name,badge,color}); view={screen:'pf',pfId:id}; }
+    const hidden=!document.getElementById('pf-inmajatek').checked;
+    if(d.pf){ const p=DATA.portfolios.find(x=>x.id===d.pf); Object.assign(p,{name,badge,color,hidden}); }
+    else { const id=uid('p_'); DATA.portfolios.push({id,name,badge,color,hidden}); view={screen:'pf',pfId:id}; }
     await save(); closeModal(); render(); toast('Zapisano'); return;
   }
   if(a==='delpf'){ modalConfirm('Usunąć portfel?','Portfel i wszystkie jego pozycje zostaną usunięte.','confirmdelpf',{pf:d.pf}); return; }
