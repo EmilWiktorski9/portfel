@@ -669,11 +669,32 @@ function renderSidebar(){
   document.querySelectorAll('.nav [data-nav]').forEach(b=>b.classList.toggle('active', view.screen===b.dataset.nav));
 }
 
+const classColor = cid => (DATA.classes.find(c=>c.id===cid)||{}).color || '#888';
+function allocCard(title, sub, items, scaleTotal, editAttrs){
+  const anyT=items.some(x=>(x.target||0)>0);
+  const rows=items.map(c=>{
+    const gap=(c.target||0)-c.pctNow, gapVal=gap/100*scaleTotal;
+    const reb = !anyT ? '' : (Math.abs(gap)<1.5 ? `<span class="reb ok">≈ na celu</span>`
+      : gap>0 ? `<span class="reb buy">dokup ~${fmt(Math.abs(gapVal))}</span>`
+              : `<span class="reb sell">nadwyżka ~${fmt(Math.abs(gapVal))}</span>`);
+    return `<div class="alloc-row">
+      <div class="top"><span class="nm"><span class="sw" style="background:${c.color}"></span>${esc(c.name)}</span>
+        <span class="pc">${c.pctNow.toFixed(0)}% <small>/ cel ${(c.target||0)}%</small></span></div>
+      <div class="bar"><i style="width:${Math.min(100,c.pctNow)}%;background:${c.color}"></i>${(c.target||0)>0?`<span class="tgt" style="left:${Math.min(100,c.target)}%"></span>`:''}</div>
+      ${reb}
+    </div>`;
+  }).join('');
+  return `<div class="card"><div class="card-head"><div><h3>${title}</h3><div class="sub">${sub||(anyT?'obecny udział vs docelowy · pionowa kreska = cel':'ustaw cele, by zobaczyć podpowiedzi ile dokupić / nadwyżki')}</div></div>
+    <button class="btn ghost sm" ${editAttrs}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>Edytuj cele</button></div>
+    <div class="alloc" style="margin-top:6px">${rows||'<span class="sub">Brak pozycji.</span>'}</div></div>`;
+}
 function renderWealth(){
   const t=pfTotals(null);
   const cats=classBreakdown(null).map((c,i)=>({...c,color:c.color||PALETTE[i%PALETTE.length]}));
   const hist=histOf('total');
   const pfs=DATA.portfolios.map(p=>({p, t:pfTotals(p.id), h:histOf(p.id)}));
+  const totalNH=t.value||1;
+  const pfItems=DATA.portfolios.filter(p=>!p.hidden).map(p=>{ const v=pfTotals(p.id).value; return {name:p.name,color:p.color,pctNow:v/totalNH*100,target:p.target||0}; });
   document.getElementById('view').innerHTML=`
   <div class="topbar">
     <div><div class="eyebrow">Przegląd ${liveChip()}</div><h2>Majątek</h2></div>
@@ -711,7 +732,8 @@ function renderWealth(){
       <div class="spark">${spark(h,{})}</div>
       <div class="meta"><span>${t.count} ${t.count===1?'pozycja':'pozycji'}</span><span class="${t.profit>=0?'':''}" style="color:${t.profit>=0?'var(--pos)':'var(--neg)'}">${pct(t.gpct)}</span></div>
     </div>`).join('')}
-  </div>`;
+  </div>
+  <div style="margin-top:22px">${allocCard('Cel majątkowy (portfele)', null, pfItems, t.value, 'data-action="editpftargets"')}</div>`;
   setLive('on');
 }
 
@@ -721,12 +743,6 @@ function renderPortfolio(pfId){
   const list=pfInstruments(pfId);
   const cats=classBreakdown(pfId).map((c,i)=>({...c,color:c.color||PALETTE[i%PALETTE.length]}));
   const hist=histOf(pfId);
-  // rebalancing vs targets (na poziomie majątku)
-  const allTotal=pfTotals(null).value||1;
-  const alloc=DATA.classes.map(c=>{
-    const now=DATA.instruments.filter(i=>i.classId===c.id).reduce((a,i)=>a+instValue(i),0);
-    return {...c, pctNow:now/allTotal*100, valNow:now};
-  }).filter(c=>c.target>0||c.valNow>0);
 
   let body;
   if(!list.length){
@@ -766,19 +782,10 @@ function renderPortfolio(pfId){
         <button class="edit" data-action="editinst" data-id="${i.id}" title="Edytuj"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg></button>
       </div>`;
     }).join('');
-    // rebalancing card
-    body+=`<div class="card" style="margin-top:18px"><h3>Cel alokacji</h3><div class="sub">obecny udział vs docelowy (dla całego majątku) · pionowa kreska = cel</div>
-      <div class="alloc" style="margin-top:14px">${alloc.map((c,i)=>{
-        const gap=c.target-c.pctNow, gapVal=gap/100*allTotal;
-        const reb = Math.abs(gap)<1.5 ? `<span class="reb ok">≈ na celu</span>`
-          : gap>0 ? `<span class="reb buy">dokup ~${fmt(Math.abs(gapVal))}</span>`
-                  : `<span class="reb sell">nadwyżka ~${fmt(Math.abs(gapVal))}</span>`;
-        return `<div class="alloc-row">
-          <div class="top"><span class="nm"><span class="sw" style="background:${c.color||PALETTE[i%PALETTE.length]}"></span>${esc(c.name)}</span>
-            <span class="pc">${c.pctNow.toFixed(0)}% <small>/ cel ${c.target}%</small></span></div>
-          <div class="bar"><i style="width:${Math.min(100,c.pctNow)}%;background:${c.color||PALETTE[i%PALETTE.length]}"></i><span class="tgt" style="left:${Math.min(100,c.target)}%"></span></div>
-          ${reb}
-        </div>`;}).join('')}</div></div>`;
+    // cel portfela (pozycje wewnątrz tego portfela)
+    const pfVal=t.value||1;
+    const posItems=list.map(i=>({name:i.name,color:classColor(i.classId),pctNow:instValue(i)/pfVal*100,target:i.targetPct||0}));
+    body+=`<div style="margin-top:18px">${allocCard('Cel portfela (pozycje)', null, posItems, t.value, `data-action="editpostargets" data-pf="${pfId}"`)}</div>`;
   }
 
   document.getElementById('view').innerHTML=`
@@ -811,18 +818,14 @@ function renderClasses(){
       <span class="sw" style="background:${c.color}"></span>
       <span class="nm">${esc(c.name)}</span>
       <span class="tgt">${fmt(val)}</span>
-      <label style="font-size:11px;color:var(--faint)">cel %</label>
-      <input data-tgt="${c.id}" inputmode="decimal" value="${c.target||0}">
       <button class="del-x" data-action="delclass" data-id="${c.id}" title="Usuń klasę"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </div>`;
   }).join('');
-  const sumT=DATA.classes.reduce((a,c)=>a+(+c.target||0),0);
   document.getElementById('view').innerHTML=`
   <div class="topbar"><div><div class="eyebrow">Ustawienia</div><h2>Klasy aktywów</h2></div>
     <button class="btn pr" data-action="addclass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Nowa klasa</button></div>
-  <div class="hint-box" style="margin-bottom:16px">Klasy grupują Twoje aktywa (Akcje, Krypto, Metale, Nieruchomości…). Docelowy % to Twój plan — na jego podstawie liczę podpowiedź „ile dokupić", żeby wrócić do założeń. Suma celów: <b class="num" style="color:${Math.abs(sumT-100)<0.5?'var(--pos)':'var(--gold-2)'}">${sumT}%</b>.</div>
-  <div class="card"><div class="cls-list">${rows}</div>
-    <div style="margin-top:16px;display:flex;justify-content:flex-end"><button class="btn" data-action="savetargets">Zapisz cele</button></div></div>`;
+  <div class="hint-box" style="margin-bottom:16px">Klasy służą tylko do <b>grupowania i kolorów</b> na wykresach kołowych (Akcje, Krypto, Metale…). Cele ustawiasz osobno: <b>Cel majątkowy</b> (udziały portfeli) na ekranie „Majątek", a <b>Cel portfela</b> (udziały pozycji) w danym portfelu.</div>
+  <div class="card"><div class="cls-list">${rows||'<span class="sub">Brak klas.</span>'}</div></div>`;
 }
 
 function renderSettings(){
@@ -1015,11 +1018,26 @@ function modalPf(pfId){
       <div class="rt"><button class="btn ghost" data-action="closemodal">Anuluj</button><button class="btn pr" data-action="savepf" ${p?`data-pf="${pfId}"`:''}>Zapisz</button></div></div>`);
 }
 function modalClass(){
-  openModal(`<h3>Nowa klasa aktywów</h3>
-    <div class="field"><label>Nazwa</label><input id="cl-name" placeholder="np. Obligacje, Surowce, REIT-y"></div>
-    <div class="frow"><div class="field"><label>Kolor</label><input id="cl-color" type="color" value="#5B8FD6" style="height:44px;padding:4px"></div>
-      <div class="field num"><label>Cel alokacji (%)</label><input id="cl-tgt" inputmode="decimal" placeholder="np. 10"></div></div>
+  openModal(`<h3>Nowa klasa aktywów</h3><div class="msub">Klasa grupuje aktywa i nadaje im kolor na wykresach.</div>
+    <div class="frow"><div class="field"><label>Nazwa</label><input id="cl-name" placeholder="np. Obligacje, Surowce, REIT-y"></div>
+      <div class="field"><label>Kolor</label><input id="cl-color" type="color" value="#5B8FD6" style="height:44px;padding:4px"></div></div>
     <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="saveclass">Dodaj</button></div></div>`);
+}
+function modalPfTargets(){
+  const pfs=DATA.portfolios.filter(p=>!p.hidden);
+  const sum=pfs.reduce((a,p)=>a+(+p.target||0),0);
+  openModal(`<h3>Cel majątkowy</h3><div class="msub">Jaki % całego majątku ma stanowić każdy portfel. Portfele poza majątkiem (ukryte) nie liczą się i nie ma ich tutaj.</div>
+    ${pfs.map(p=>`<div class="field num"><label><span class="pf-badge" style="width:15px;height:15px;display:inline-flex;background:${p.color};vertical-align:-3px;margin-right:5px">${esc(p.badge||'')}</span>${esc(p.name)}</label><input data-pftgt="${p.id}" inputmode="decimal" value="${p.target||0}"></div>`).join('')||'<div class="sub">Brak portfeli w majątku.</div>'}
+    <div class="hint-box" id="pftgt-sum">Suma celów: <b class="num">${sum}%</b> <span style="color:var(--faint)">(najlepiej 100%)</span></div>
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="savepftargets">Zapisz</button></div></div>`);
+}
+function modalPosTargets(pfId){
+  const list=pfInstruments(pfId); const p=DATA.portfolios.find(x=>x.id===pfId);
+  const sum=list.reduce((a,i)=>a+(+i.targetPct||0),0);
+  openModal(`<h3>Cel portfela — ${esc(p.name)}</h3><div class="msub">Jaki % tego portfela ma stanowić każda pozycja (np. BTC 90%, ETH 5%, LINK 5%).</div>
+    ${list.map(i=>`<div class="field num"><label><span class="sw" style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${classColor(i.classId)};margin-right:6px"></span>${esc(i.name)}</label><input data-postgt="${i.id}" inputmode="decimal" value="${i.targetPct||0}"></div>`).join('')||'<div class="sub">Brak pozycji.</div>'}
+    <div class="hint-box" id="postgt-sum">Suma celów: <b class="num">${sum}%</b> <span style="color:var(--faint)">(najlepiej 100%)</span></div>
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="savepostargets" data-pf="${pfId}">Zapisz</button></div></div>`);
 }
 function modalConfirm(title,msg,action,data){
   openModal(`<h3>${title}</h3><div class="msub" style="font-size:13.5px;color:var(--muted);margin-bottom:2px">${msg}</div>
@@ -1052,6 +1070,8 @@ document.addEventListener('click',async e=>{
   if(a==='editpf') return modalPf(d.pf);
   if(a==='togglehide'){ const p=DATA.portfolios.find(x=>x.id===d.pf); if(p){ p.hidden=!p.hidden; await save(); render(); toast(p.hidden?'Portfel poza majątkiem':'Portfel wliczany do majątku'); } return; }
   if(a==='addclass') return modalClass();
+  if(a==='editpftargets') return modalPfTargets();
+  if(a==='editpostargets') return modalPosTargets(d.pf);
 
   if(a==='export'){ const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
     const u=URL.createObjectURL(blob); const el=document.createElement('a'); el.href=u; el.download='byk-kopia-'+today()+'.json'; el.click(); URL.revokeObjectURL(u); return; }
@@ -1114,7 +1134,7 @@ document.addEventListener('click',async e=>{
 
   if(a==='saveclass'){
     const name=document.getElementById('cl-name').value.trim(); if(!name) return toast('Podaj nazwę');
-    DATA.classes.push({id:uid('c_'),name,color:document.getElementById('cl-color').value,target:parseNum(document.getElementById('cl-tgt').value)});
+    DATA.classes.push({id:uid('c_'),name,color:document.getElementById('cl-color').value});
     await save(); closeModal(); render(); toast('Dodano klasę'); return;
   }
   if(a==='delclass'){
@@ -1122,10 +1142,18 @@ document.addEventListener('click',async e=>{
     if(used) return toast('Najpierw przenieś pozycje z tej klasy');
     DATA.classes=DATA.classes.filter(x=>x.id!==d.id); await save(); render(); toast('Usunięto klasę'); return;
   }
-  if(a==='savetargets'){ document.querySelectorAll('[data-tgt]').forEach(inp=>{ const c=DATA.classes.find(x=>x.id===inp.dataset.tgt); if(c)c.target=parseNum(inp.value); });
-    await save(); render(); toast('Zapisano cele'); return; }
+  if(a==='savepftargets'){ document.querySelectorAll('[data-pftgt]').forEach(inp=>{ const p=DATA.portfolios.find(x=>x.id===inp.dataset.pftgt); if(p)p.target=parseNum(inp.value); });
+    await save(); closeModal(); render(); toast('Zapisano cel majątkowy'); return; }
+  if(a==='savepostargets'){ document.querySelectorAll('[data-postgt]').forEach(inp=>{ const it=DATA.instruments.find(x=>x.id===inp.dataset.postgt); if(it)it.targetPct=parseNum(inp.value); });
+    await save(); closeModal(); render(); toast('Zapisano cel portfela'); return; }
   if(a==='savesettings'){ DATA.settings.twelveKey=document.getElementById('set-td').value.trim();
     DATA.settings.geckoKey=document.getElementById('set-gecko').value.trim(); await save(); toast('Zapisano'); refreshPrices(true); return; }
+});
+
+document.addEventListener('input', e=>{
+  const t=e.target; if(!t||!t.matches) return;
+  if(t.matches('[data-pftgt]')){ const s=[...document.querySelectorAll('[data-pftgt]')].reduce((a,i)=>a+parseNum(i.value),0); const b=document.querySelector('#pftgt-sum b'); if(b) b.textContent=s+'%'; }
+  else if(t.matches('[data-postgt]')){ const s=[...document.querySelectorAll('[data-postgt]')].reduce((a,i)=>a+parseNum(i.value),0); const b=document.querySelector('#postgt-sum b'); if(b) b.textContent=s+'%'; }
 });
 
 document.addEventListener('change', e=>{ if(!e.target||e.target.id!=='imp-file') return; const f=e.target.files&&e.target.files[0]; if(!f) return;
