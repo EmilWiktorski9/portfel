@@ -298,14 +298,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 /* ============================================================
    KONFIGURACJA SUPABASE  (Supabase → Project Settings → API)
    ============================================================ */
-const SUPABASE_URL      = 'https://szmbjbwfpovinyfifqae.supabase.co';        // np. https://abcd1234.supabase.co
-const SUPABASE_ANON_KEY = 'sb_publishable_oWU0UYB5jo7-KW88YqjcfA_f2qP2yiC';   // długi klucz "anon public"
+const SUPABASE_URL      = 'https://szmbjbwfpovinyfifqae.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_oWU0UYB5jo7-KW88YqjcfA_f2qP2yiC';
 /* ============================================================ */
 
 const CONFIG_OK = SUPABASE_URL && SUPABASE_ANON_KEY
   && !SUPABASE_URL.includes('WKLEJ') && !SUPABASE_ANON_KEY.includes('WKLEJ');
 const supabase = CONFIG_OK ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let currentUser = null, authMode = 'login', started = false;
+
+const IMPORTED_DATA = {"version":2,"settings":{"baseCurrency":"PLN","twelveKey":"","geckoKey":""},"classes":[{"id":"akcje","name":"Akcje","color":"#5B8FD6","target":40},{"id":"krypto","name":"Kryptowaluty","color":"#C9A24B","target":50},{"id":"gotowka","name":"Gotówka","color":"#4FB07A","target":4},{"id":"lokaty","name":"Obligacje / Lokaty","color":"#D08A3E","target":0},{"id":"garaze","name":"Garaże","color":"#8AAE4C","target":10},{"id":"nieruch","name":"Nieruchomości","color":"#B268C9","target":0},{"id":"waluty","name":"Waluty obce","color":"#3FA9A2","target":0},{"id":"metale","name":"Metale szlachetne","color":"#C7B23E","target":0}],"portfolios":[{"id":"p_inw","name":"Inwestycje","badge":"IN","color":"#C9A24B","hidden":false},{"id":"p_nier","name":"Nieruchomości","badge":"NI","color":"#B268C9","hidden":false},{"id":"p_pod","name":"Poducha","badge":"PO","color":"#4FB07A","hidden":true}],"instruments":[{"id":"i_akcje","portfolioId":"p_inw","classId":"akcje","name":"Akcje","mode":"manual","snapshots":[{"date":"2023-08-18","invested":3626,"value":5508.29},{"date":"2023-09-08","invested":3826,"value":5633.82},{"date":"2023-10-10","invested":3826,"value":5507},{"date":"2023-11-10","invested":3826,"value":5771.69},{"date":"2023-12-03","invested":3826,"value":6040.59},{"date":"2023-12-31","invested":3826,"value":6032.77},{"date":"2024-01-27","invested":3826,"value":6293},{"date":"2024-02-28","invested":3826,"value":6652},{"date":"2024-03-31","invested":3826,"value":7196},{"date":"2024-04-30","invested":3826,"value":7730},{"date":"2024-05-30","invested":3826,"value":7887},{"date":"2024-06-29","invested":3826,"value":8277},{"date":"2024-07-31","invested":3826,"value":7354},{"date":"2024-09-01","invested":3826,"value":7595},{"date":"2024-09-30","invested":3826,"value":7363},{"date":"2024-11-01","invested":3826,"value":7508},{"date":"2024-11-30","invested":3826,"value":7549},{"date":"2025-01-01","invested":3826,"value":7891},{"date":"2025-02-01","invested":3826,"value":7586},{"date":"2025-03-02","invested":3826,"value":7774},{"date":"2025-04-01","invested":3826,"value":8100},{"date":"2025-05-01","invested":3826,"value":9082},{"date":"2025-05-31","invested":3826,"value":9318},{"date":"2025-07-01","invested":3826,"value":9488},{"date":"2025-07-31","invested":3826,"value":9413},{"date":"2025-08-31","invested":3826,"value":9254},{"date":"2025-09-30","invested":3826,"value":9262},{"date":"2025-11-01","invested":4126,"value":9727},{"date":"2025-11-30","invested":4626,"value":10108},{"date":"2026-01-31","invested":4626,"value":11164},{"date":"2026-03-04","invested":4626,"value":11475},{"date":"2026-04-05","invested":4626,"value":12056},{"date":"2026-05-01","invested":4626,"value":12351},{"date":"2026-05-31","invested":4626,"value":12528},{"date":"2026-07-02","invested":4626,"value":12784}],"invested":4626,"manualValue":12784},{"id":"i_krypto","portfolioId":"p_inw","classId":"krypto","name":"Kryptowaluty","mode":"manual","snapshots":[{"date":"2023-08-18","invested":20650,"value":21233},{"date":"2023-09-08","invested":22550,"value":23970},{"date":"2023-10-10","invested":24750,"value":27811},{"date":"2023-11-10","invested":25750,"value":33616},{"date":"2023-12-03","invested":30250,"value":41345},{"date":"2023-12-31","invested":30250,"value":43937},{"date":"2024-01-27","invested":31250,"value":44975},{"date":"2024-02-28","invested":31250,"value":63963},{"date":"2024-03-31","invested":31250,"value":73823},{"date":"2024-04-30","invested":35250,"value":65626},{"date":"2024-05-30","invested":38550,"value":76768},{"date":"2024-06-29","invested":41050,"value":77836},{"date":"2024-07-31","invested":43550,"value":79597},{"date":"2024-09-01","invested":45550,"value":67055},{"date":"2024-09-30","invested":48050,"value":75758},{"date":"2024-11-01","invested":51050,"value":88727},{"date":"2024-11-30","invested":65062,"value":148384},{"date":"2025-01-01","invested":66562,"value":127760},{"date":"2025-02-01","invested":66562,"value":123193},{"date":"2025-03-02","invested":66562,"value":105250},{"date":"2025-04-01","invested":66562,"value":86465},{"date":"2025-05-01","invested":66562,"value":100328},{"date":"2025-05-31","invested":66562,"value":104810},{"date":"2025-07-01","invested":66562,"value":98350},{"date":"2025-07-31","invested":66562,"value":120446},{"date":"2025-08-31","invested":66562,"value":107266},{"date":"2025-09-30","invested":72543.4,"value":116020},{"date":"2025-11-01","invested":72543.4,"value":109640},{"date":"2025-11-30","invested":72543.4,"value":92490},{"date":"2026-01-31","invested":72543.4,"value":81936},{"date":"2026-03-04","invested":72543.4,"value":77087},{"date":"2026-04-05","invested":72543.4,"value":75385},{"date":"2026-05-01","invested":72543.4,"value":68864},{"date":"2026-05-31","invested":72543.4,"value":67204},{"date":"2026-07-02","invested":72543.4,"value":26963}],"invested":72543.4,"manualValue":26963},{"id":"i_gotinw","portfolioId":"p_inw","classId":"gotowka","name":"Gotówka inwest. / BTC + waluty","mode":"manual","snapshots":[{"date":"2023-08-18","invested":3000,"value":3000},{"date":"2023-09-08","invested":4500,"value":4500},{"date":"2023-10-10","invested":4500,"value":4500},{"date":"2023-11-10","invested":4500,"value":4500},{"date":"2023-12-03","invested":700,"value":700},{"date":"2023-12-31","invested":2400,"value":2400},{"date":"2024-01-27","invested":4600,"value":4600},{"date":"2024-02-28","invested":6800,"value":6800},{"date":"2024-03-31","invested":8500,"value":8905},{"date":"2024-04-30","invested":15300,"value":14838},{"date":"2024-05-30","invested":15300,"value":15880},{"date":"2024-06-29","invested":15300,"value":14922},{"date":"2024-07-31","invested":15300,"value":15820},{"date":"2024-09-01","invested":15300,"value":14087},{"date":"2024-09-30","invested":15300,"value":15003},{"date":"2024-11-01","invested":15300,"value":16677},{"date":"2024-11-30","invested":4000,"value":4100},{"date":"2025-01-01","invested":4000,"value":4050},{"date":"2025-02-01","invested":4000,"value":3974},{"date":"2025-03-02","invested":4000,"value":3986},{"date":"2025-04-01","invested":4000,"value":3904},{"date":"2025-05-01","invested":4000,"value":4081},{"date":"2025-05-31","invested":4000,"value":4056},{"date":"2025-07-01","invested":4000,"value":4056},{"date":"2025-07-31","invested":4000,"value":4093},{"date":"2025-08-31","invested":4000,"value":4061},{"date":"2025-09-30","invested":0,"value":0},{"date":"2025-11-01","invested":0,"value":0},{"date":"2026-01-31","invested":8000,"value":7910},{"date":"2026-03-04","invested":10000,"value":10094},{"date":"2026-04-05","invested":12000,"value":12172},{"date":"2026-05-01","invested":14000,"value":13940},{"date":"2026-05-31","invested":18000,"value":18005},{"date":"2026-07-02","invested":18000,"value":53639}],"invested":18000,"manualValue":53639},{"id":"i_lokaty","portfolioId":"p_inw","classId":"lokaty","name":"Lokaty / Obligacje","mode":"manual","snapshots":[{"date":"2023-08-18","invested":6550,"value":6690},{"date":"2023-09-08","invested":6550,"value":6712.5},{"date":"2023-10-10","invested":6550,"value":6743},{"date":"2023-11-10","invested":6550,"value":6776.11},{"date":"2023-12-03","invested":6550,"value":6806.26},{"date":"2023-12-31","invested":6550,"value":6835},{"date":"2024-01-27","invested":6550,"value":6855.5},{"date":"2024-02-28","invested":6550,"value":6900},{"date":"2024-03-31","invested":6550,"value":6933},{"date":"2024-04-30","invested":0,"value":0},{"date":"2024-05-30","invested":0,"value":0},{"date":"2024-06-29","invested":0,"value":0},{"date":"2024-07-31","invested":0,"value":0},{"date":"2024-09-01","invested":0,"value":0},{"date":"2024-09-30","invested":0,"value":0},{"date":"2024-11-01","invested":0,"value":0},{"date":"2024-11-30","invested":0,"value":0},{"date":"2025-01-01","invested":0,"value":0},{"date":"2025-02-01","invested":0,"value":0},{"date":"2025-03-02","invested":0,"value":0},{"date":"2025-04-01","invested":0,"value":0},{"date":"2025-05-01","invested":0,"value":0},{"date":"2025-05-31","invested":0,"value":0},{"date":"2025-07-01","invested":0,"value":0},{"date":"2025-07-31","invested":0,"value":0},{"date":"2025-08-31","invested":0,"value":0},{"date":"2025-09-30","invested":0,"value":0},{"date":"2025-11-01","invested":0,"value":0}],"invested":0,"manualValue":0},{"id":"i_mieszk","portfolioId":"p_nier","classId":"nieruch","name":"Mieszkanie (1/4 udziału)","mode":"manual","snapshots":[{"date":"2026-07-02","invested":125000,"value":125000}],"invested":125000,"manualValue":125000},{"id":"i_garaze","portfolioId":"p_nier","classId":"garaze","name":"Garaże","mode":"manual","snapshots":[{"date":"2026-07-02","invested":0,"value":0}],"invested":0,"manualValue":0},{"id":"i_gotpln","portfolioId":"p_pod","classId":"gotowka","name":"Gotówka PLN","mode":"manual","snapshots":[{"date":"2026-07-02","invested":10400,"value":10400}],"invested":10400,"manualValue":10400},{"id":"i_walkonto","portfolioId":"p_pod","classId":"waluty","name":"Waluty obce (konto)","mode":"manual","snapshots":[{"date":"2026-07-02","invested":17282,"value":17282}],"invested":17282,"manualValue":17282},{"id":"i_walcash","portfolioId":"p_pod","classId":"waluty","name":"Waluty obce (gotówka)","mode":"manual","snapshots":[{"date":"2026-07-02","invested":0,"value":0}],"invested":0,"manualValue":0}],"history":{}};
 
 /* ---------- palette ---------- */
 const PALETTE = ['#C9A24B','#4FB07A','#5B8FD6','#B268C9','#E0655A','#3FA9A2','#D08A3E','#8AAE4C','#9B7BD9','#D95BA0','#5FA0C9','#C7B23E'];
@@ -354,6 +356,8 @@ function seed(){
   return { version:2, settings:{baseCurrency:'PLN',twelveKey:'',geckoKey:''}, classes:C, portfolios:P, instruments:I, history:{} };
 }
 
+function normalizeData(){ DATA=DATA||{}; if(!DATA.settings) DATA.settings={baseCurrency:'PLN',twelveKey:'',geckoKey:''}; if(!DATA.history) DATA.history={}; if(!DATA.classes) DATA.classes=[]; if(!DATA.portfolios) DATA.portfolios=[]; if(!DATA.instruments) DATA.instruments=[]; }
+
 /* ---------- storage (Supabase, jeden wiersz JSON) ---------- */
 async function loadData(){
   let d=null;
@@ -379,14 +383,16 @@ async function save(){ clearTimeout(saveT); saveT=setTimeout(async()=>{
    CENY NA ŻYWO
    ============================================================ */
 let refreshing=false;
-const fxToPln = cur => cur==='PLN' ? 1 : (FX[cur] ? 1/FX[cur] : (cur==='USD'?4.05:cur==='EUR'?4.30:1));
+const APPROX_FX = {USD:4.05,EUR:4.30,CHF:4.55,GBP:5.15,JPY:0.027,NOK:0.38,SEK:0.39,DKK:0.58,CZK:0.17,CAD:2.95,AUD:2.65};
+const fxToPln = cur => cur==='PLN' ? 1 : (FX[cur] ? 1/FX[cur] : (APPROX_FX[cur]||1));
 
 async function fetchFx(){
-  try{
-    const r=await fetch('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR,GBP,CHF,JPY,NOK,SEK,DKK,CZK,CAD,AUD');
-    const j=await r.json();
-    if(j&&j.rates) FX={PLN:1,...j.rates};
-  }catch(e){}
+  // FX przechowuje "ile jednostek waluty za 1 PLN" (baza PLN); fxToPln = 1/FX[cur]
+  const grab=async(url,pick)=>{ try{ const r=await fetch(url); const j=await r.json(); const rates=pick(j);
+    if(rates && rates.USD){ FX={...rates,PLN:1}; return true; } }catch(e){} return false; };
+  if(await grab('https://open.er-api.com/v6/latest/PLN', j=> (j&&j.result!=='error')?j.rates:null)) return;
+  if(await grab('https://api.frankfurter.dev/v2/rates?base=PLN', j=> (j&&j.base==='PLN')?j.rates:null)) return;
+  if(await grab('https://api.frankfurter.app/latest?from=PLN&to=USD,EUR,GBP,CHF,JPY,NOK,SEK,DKK,CZK,CAD,AUD', j=> j?j.rates:null)) return;
 }
 
 async function refreshPrices(silent){
@@ -451,12 +457,21 @@ function setLive(state){
 /* ============================================================
    OBLICZENIA
    ============================================================ */
-function instValue(i){
-  if(i.mode==='manual') return i.manualValue||0;
-  if(!i.lastPrice) return 0;
-  return (i.quantity||0)*i.lastPrice*fxToPln(i.lastCur||i.currency||'PLN');
+function snapsOf(i){ return (i.snapshots&&i.snapshots.length)?[...i.snapshots].sort((a,b)=>a.date<b.date?-1:1):null; }
+function liveValue(i){
+  if(i.provider==='fx') return (i.quantity||0)*fxToPln(i.symbol);
+  if(i.mode==='auto' && i.lastPrice) return (i.quantity||0)*i.lastPrice*fxToPln(i.lastCur||i.currency||'PLN');
+  return null;
 }
-function instInvested(i){ return i.invested||0; }
+function instValue(i){
+  const lv=liveValue(i); if(lv!=null) return lv;
+  const s=snapsOf(i); if(s) return s[s.length-1].value||0;
+  return i.manualValue||0;
+}
+function instInvested(i){
+  const s=snapsOf(i); if(s){ const li=s[s.length-1].invested; return li!=null?li:(i.invested||0); }
+  return i.invested||0;
+}
 const pfInstruments = pfId => DATA.instruments.filter(i=>i.portfolioId===pfId);
 const isHidden = pfId => { const p=DATA.portfolios.find(x=>x.id===pfId); return !!(p&&p.hidden); };
 
@@ -475,16 +490,29 @@ function classBreakdown(pfId){
   return DATA.classes.filter(c=>map[c.id]).map(c=>({...c, value:map[c.id], pctNow:map[c.id]/total*100}))
     .sort((a,b)=>b.value-a.value);
 }
-function snapshotHistory(){
-  const d=today();
-  const put=(key,val,inv)=>{ if(!DATA.history[key]) DATA.history[key]=[];
-    const arr=DATA.history[key]; const last=arr[arr.length-1];
-    if(last&&last.date===d){ last.value=val; last.invested=inv; } else arr.push({date:d,value:val,invested:inv});
-    if(arr.length>2000) arr.shift(); };
-  const tw=pfTotals(null); put('total', tw.value, tw.invested);
-  DATA.portfolios.forEach(p=>{ const tp=pfTotals(p.id); put(p.id, tp.value, tp.invested); });
+function snapshotHistory(){ recordToday(); }
+function recordToday(){
+  const td=today();
+  DATA.instruments.forEach(i=>{ const lv=liveValue(i); if(lv==null) return;
+    if(!i.snapshots) i.snapshots=[];
+    const last=i.snapshots[i.snapshots.length-1];
+    if(last&&last.date===td){ last.value=lv; last.invested=i.invested||last.invested||0; }
+    else i.snapshots.push({date:td,value:lv,invested:i.invested||0}); });
 }
-const histOf = key => (DATA.history[key]||[]).map(h=>({date:h.date,value:h.value,invested:h.invested}));
+function timeline(pfId){
+  const scope=DATA.instruments.filter(i=> pfId ? i.portfolioId===pfId : !isHidden(i.portfolioId));
+  const dset=new Set(); scope.forEach(i=>{ const s=snapsOf(i); if(s) s.forEach(x=>dset.add(x.date)); });
+  const dates=[...dset].sort();
+  const out=dates.map(d=>{ let v=0,inv=0;
+    scope.forEach(i=>{ const s=snapsOf(i); if(!s) return; const past=s.filter(x=>x.date<=d);
+      if(past.length){ const l=past[past.length-1]; v+=l.value||0; inv+=(l.invested||0); } });
+    return {date:d,value:v,invested:inv}; });
+  const td=today(); let v=0,inv=0; scope.forEach(i=>{ v+=instValue(i); inv+=instInvested(i); });
+  if(out.length && out[out.length-1].date===td) out[out.length-1]={date:td,value:v,invested:inv};
+  else out.push({date:td,value:v,invested:inv});
+  return out;
+}
+const histOf = key => timeline(key==='total'?null:key);
 
 /* ============================================================
    WYKRESY (SVG, bez zależności)
@@ -686,7 +714,10 @@ function renderPortfolio(pfId){
         const priceTxt = i.lastPrice? (nf2.format(i.lastPrice)+' '+(i.lastCur||i.currency)) : 'brak ceny';
         sub=`<span class="tag live">na żywo</span> <span>${esc(i.symbol)}</span> · <span>${(i.quantity||0).toLocaleString('pl-PL',{maximumFractionDigits:6})} × ${priceTxt}</span>`;
       } else {
-        sub=`<span class="tag man">ręczne</span> <span>wpisana wartość</span>`;
+        const s=snapsOf(i); const dt=s?s[s.length-1].date:null; const n=s?s.length:0;
+        sub= s && n>1
+          ? `<span class="tag man">historia</span> <span>${n} wpisów · ostatni ${fmtDate(dt)}</span>`
+          : `<span class="tag man">ręczne</span> <span>${dt?('wpis '+fmtDate(dt)):'wpisana wartość'}</span>`;
       }
       return `<div class="inst-row">
         ${classIco(i)}
@@ -769,11 +800,14 @@ function renderSettings(){
       <button class="btn ghost" data-action="refresh">Przetestuj — odśwież ceny</button></div>
   </div>
   <div class="card" style="max-width:620px;margin-top:16px">
-    <h3>Dane</h3><div class="sub">kopia zapasowa i konto</div>
+    <h3>Dane</h3><div class="sub">import z Excela, kopia zapasowa i konto</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn pr" data-action="importexcel">Wczytaj dane z Excela</button>
       <button class="btn ghost" data-action="export">Pobierz kopię (JSON)</button>
+      <label class="btn ghost" style="cursor:pointer">Wczytaj z pliku (JSON)<input id="imp-file" type="file" accept="application/json,.json" style="display:none"></label>
       <button class="btn ghost" data-action="logout">Wyloguj</button>
     </div>
+    <div class="hint-box" style="margin-top:12px">„Wczytaj dane z Excela" wgra Twoją historię z arkusza (Akcje, Krypto, Lokaty, gotówka/waluty, mieszkanie, garaże, poducha) — <b>zastąpi</b> obecne dane na tym koncie. Zrób najpierw kopię, jeśli masz już coś wpisane. Klucze API zostają zachowane.</div>
   </div>`;
 }
 
@@ -981,6 +1015,13 @@ document.addEventListener('click',async e=>{
 
   if(a==='export'){ const blob=new Blob([JSON.stringify(DATA,null,2)],{type:'application/json'});
     const u=URL.createObjectURL(blob); const el=document.createElement('a'); el.href=u; el.download='byk-kopia-'+today()+'.json'; el.click(); URL.revokeObjectURL(u); return; }
+  if(a==='importexcel'){ openModal(`<h3>Wczytać dane z Excela?</h3>
+    <div class="msub" style="font-size:13.5px;color:var(--muted)">Zastąpi to obecne dane na tym koncie Twoją historią z arkusza (Akcje, Krypto, Lokaty, gotówka/waluty, mieszkanie, garaże, poducha). Klucze API zostaną zachowane. Operacji nie cofniesz — jeśli chcesz, najpierw pobierz kopię.</div>
+    <div class="modal-foot"><button class="btn ghost" data-action="closemodal">Anuluj</button><div class="rt"><button class="btn pr" data-action="confirmimportexcel">Wczytaj</button></div></div>`); return; }
+  if(a==='confirmimportexcel'){ const keep=(DATA&&DATA.settings)||{};
+    DATA=JSON.parse(JSON.stringify(IMPORTED_DATA)); normalizeData();
+    DATA.settings.twelveKey=keep.twelveKey||DATA.settings.twelveKey; DATA.settings.geckoKey=keep.geckoKey||DATA.settings.geckoKey;
+    await save(); closeModal(); view={screen:'wealth',pfId:null}; render(); toast('Wczytano dane z Excela'); refreshPrices(true); return; }
 
   if(a==='saveinst'){
     const pf=document.getElementById('i-pf').value, cls=document.getElementById('i-class').value;
@@ -1009,7 +1050,9 @@ document.addEventListener('click',async e=>{
     i.invested=parseNum(document.getElementById('e-inv').value);
     i.portfolioId=document.getElementById('e-pf').value; i.classId=document.getElementById('e-class').value;
     if(i.mode==='auto') i.quantity=parseNum(document.getElementById('e-qty').value);
-    else i.manualValue=parseNum(document.getElementById('e-val').value);
+    else { const nv=parseNum(document.getElementById('e-val').value); i.manualValue=nv;
+      if(!i.snapshots) i.snapshots=[]; const td=today(); const last=i.snapshots[i.snapshots.length-1];
+      if(last&&last.date===td){ last.value=nv; last.invested=i.invested; } else i.snapshots.push({date:td,value:nv,invested:i.invested}); }
     await save(); closeModal(); render(); toast('Zapisano'); return;
   }
   if(a==='delinst'){ modalConfirm('Usunąć pozycję?','Pozycja zostanie trwale usunięta.','confirmdelinst',{id:d.id}); return; }
@@ -1044,6 +1087,13 @@ document.addEventListener('click',async e=>{
   if(a==='savesettings'){ DATA.settings.twelveKey=document.getElementById('set-td').value.trim();
     DATA.settings.geckoKey=document.getElementById('set-gecko').value.trim(); await save(); toast('Zapisano'); refreshPrices(true); return; }
 });
+
+document.addEventListener('change', e=>{ if(!e.target||e.target.id!=='imp-file') return; const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const rd=new FileReader(); rd.onload=async()=>{ try{ const obj=JSON.parse(rd.result); if(!obj||!obj.instruments) throw 0;
+    const keep=(DATA&&DATA.settings)||{}; DATA=obj; normalizeData();
+    DATA.settings.twelveKey=DATA.settings.twelveKey||keep.twelveKey; DATA.settings.geckoKey=DATA.settings.geckoKey||keep.geckoKey;
+    await save(); view={screen:'wealth',pfId:null}; render(); toast('Wczytano dane z pliku'); refreshPrices(true);
+  }catch(_){ toast('Nieprawidłowy plik JSON'); } }; rd.readAsText(f); });
 
 let toastT;
 function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2400); }
