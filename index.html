@@ -193,10 +193,18 @@
   .del-x:hover{background:var(--neg-soft);border-color:var(--neg)}
   .del-x svg{width:17px;height:17px}
   .pf-card.muted{opacity:.58}
-  .range-tabs{display:flex;gap:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:3px;flex-wrap:wrap}
-  .rt-btn{padding:5px 9px;border-radius:7px;font-size:11.5px;font-weight:600;color:var(--muted);font-family:var(--num)}
+  .range-tabs{display:flex;gap:3px;background:var(--bg-2);border:1px solid var(--line);border-radius:10px;padding:3px;width:100%}
+  .rt-btn{flex:1;text-align:center;padding:6px 4px;border-radius:7px;font-size:11.5px;font-weight:600;color:var(--muted);font-family:var(--num)}
   .rt-btn.on{background:var(--surface-2);color:var(--ink)}
   .rt-btn:hover{color:var(--ink)}
+  .chart-host{position:relative;width:100%}
+  .chart-host svg{display:block;width:100%;height:auto;touch-action:pan-y}
+  .cvline{position:absolute;top:4px;bottom:24px;width:1px;background:var(--line-2);pointer-events:none;z-index:3}
+  .cdot{position:absolute;width:11px;height:11px;border-radius:50%;border:2px solid var(--surface);pointer-events:none;z-index:4;transform:translate(-50%,-50%);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+  .ctip{position:absolute;pointer-events:none;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;padding:8px 11px;box-shadow:0 10px 28px rgba(0,0,0,.45);transform:translate(-50%,calc(-100% - 12px));white-space:nowrap;z-index:6}
+  .ctip .d{color:var(--faint);font-size:10.5px;margin-bottom:3px}
+  .ctip .v{font-family:var(--num);font-weight:600;font-size:14px}
+  .ctip .i{font-family:var(--num);color:var(--muted);font-size:11px;margin-top:2px}
   .chart-legend{display:flex;gap:16px;align-items:center;margin-top:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
   .chart-legend i{display:inline-block;width:15px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
   .chart-legend i.dash{height:0;border-top:2px dashed var(--muted);background:none;border-radius:0}
@@ -554,47 +562,79 @@ function spark(series,{w=110,h=34,color}={}){
   return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
-const RANGES=[{k:'1T',l:'1T',d:7},{k:'1M',l:'1M',d:31},{k:'3M',l:'3M',d:92},{k:'1R',l:'1R',d:366},{k:'5L',l:'5L',d:1827},{k:'max',l:'Max',d:1e9}];
+const RANGES=[{k:'1T',l:'1T',d:7},{k:'1M',l:'1M',d:31},{k:'3M',l:'3M',d:92},{k:'6M',l:'6M',d:183},{k:'1R',l:'1R',d:366},{k:'5L',l:'5L',d:1827},{k:'max',l:'Max',d:1e9}];
 let chartRange='max';
+const PLM=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+const fmtTick=ms=>{ const d=new Date(ms); return PLM[d.getMonth()]+" '"+String(d.getFullYear()).slice(2); };
 function filterRange(arr){
   if(chartRange==='max') return arr;
   const r=RANGES.find(x=>x.k===chartRange); const cut=Date.now()-r.d*864e5;
-  const f=arr.filter(p=>+new Date(p.date)>=cut);
-  return f.length>=2?f:arr.slice(-2);
+  const inWin=arr.filter(p=>+new Date(p.date)>=cut);
+  const before=arr.filter(p=>+new Date(p.date)<cut);
+  const anchored=(before.length?[before[before.length-1]]:[]).concat(inWin);
+  return anchored.length>=2?anchored:arr.slice(-2);
 }
-function lineChart2(series,{w=580,h=210,color='var(--gold)'}={}){
-  if(series.length<2) return `<div class="empty" style="padding:34px"><p>Historia zbiera się od dziś — przy każdym odświeżeniu zapisuję wartość i wpłacone. Za kilka dni pojawi się wykres, a zakresy (1M, 1R, 5L) wypełnią się z czasem.</p></div>`;
-  const pad={l:8,r:8,t:16,b:24};
+let CHART=null;
+function buildChart(series,color){
+  const W=600,H=234,pad={l:8,r:8,t:16,b:26};
+  if(series.length<2){ CHART=null; return `<div class="empty" style="padding:34px"><p>Historia zbiera się od dziś — za kilka dni pojawi się wykres, a dłuższe zakresy (6M, 1R, 5L) wypełnią się z czasem.</p></div>`; }
   const xs=series.map(p=>+new Date(p.date));
   const allv=[]; series.forEach(p=>{allv.push(p.value); allv.push(p.invested==null?p.value:p.invested);});
-  const ymin=Math.min(...allv),ymax=Math.max(...allv),yr=(ymax-ymin)||1;
-  const xmin=Math.min(...xs),xmax=Math.max(...xs);
-  const X=t=>pad.l+(xmax===xmin?0:(t-xmin)/(xmax-xmin))*(w-pad.l-pad.r);
-  const Y=v=>h-pad.b-((v-ymin)/yr)*(h-pad.t-pad.b);
-  const mk=key=>series.map((p,i)=>{const val=key==='inv'?(p.invested==null?p.value:p.invested):p.value;return (i?'L':'M')+X(xs[i]).toFixed(1)+' '+Y(val).toFixed(1);}).join(' ');
-  const valLine=mk('val'), invLine=mk('inv');
-  const area=valLine+` L ${X(xmax).toFixed(1)} ${h-pad.b} L ${X(xmin).toFixed(1)} ${h-pad.b} Z`;
-  const lx=X(xmax), ly=Y(series[series.length-1].value);
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" preserveAspectRatio="none" style="display:block">
-    <defs><linearGradient id="fg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
-    <line x1="${pad.l}" y1="${h-pad.b}" x2="${w-pad.r}" y2="${h-pad.b}" stroke="var(--line)"/>
+  let ymin=Math.min(...allv),ymax=Math.max(...allv); if(ymin===ymax){ymin=ymin*0.98;ymax=ymax*1.02+1;}
+  const yr=(ymax-ymin)||1, xmin=Math.min(...xs),xmax=Math.max(...xs);
+  const X=t=>pad.l+(xmax===xmin?0:(t-xmin)/(xmax-xmin))*(W-pad.l-pad.r);
+  const Y=v=>H-pad.b-((v-ymin)/yr)*(H-pad.t-pad.b);
+  const pts=series.map((p,i)=>({date:p.date,value:p.value,invested:(p.invested==null?p.value:p.invested),x:X(xs[i]),y:Y(p.value)}));
+  const grid=[]; const yl=4;
+  for(let i=0;i<yl;i++){ const v=ymin+yr*i/(yl-1), y=Y(v);
+    grid.push(`<line x1="${pad.l}" y1="${y.toFixed(1)}" x2="${W-pad.r}" y2="${y.toFixed(1)}" stroke="var(--line)" opacity="${i===0?'.7':'.4'}"/>`);
+    grid.push(`<text x="${pad.l+3}" y="${(y-4).toFixed(1)}" font-size="9.5" fill="var(--faint)" font-family="var(--num)">${fmtShort(v)}</text>`); }
+  const n=Math.min(5,Math.max(2,series.length)), xt=[];
+  for(let i=0;i<n;i++){ const t=xmin+(xmax-xmin)*i/(n-1), x=X(t), anc=i===0?'start':(i===n-1?'end':'middle');
+    xt.push(`<line x1="${x.toFixed(1)}" y1="${pad.t}" x2="${x.toFixed(1)}" y2="${H-pad.b}" stroke="var(--line)" opacity=".2"/>`);
+    xt.push(`<text x="${x.toFixed(1)}" y="${H-9}" font-size="9.5" fill="var(--faint)" font-family="var(--num)" text-anchor="${anc}">${fmtTick(t)}</text>`); }
+  const valLine=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ');
+  const invLine=pts.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+' '+Y(p.invested).toFixed(1)).join(' ');
+  const area=valLine+` L ${X(xmax).toFixed(1)} ${H-pad.b} L ${X(xmin).toFixed(1)} ${H-pad.b} Z`;
+  const last=pts[pts.length-1];
+  CHART={pts,W,H,color};
+  return `<svg viewBox="0 0 ${W} ${H}">
+    <defs><linearGradient id="fg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".18"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+    ${grid.join('')}${xt.join('')}
     <path d="${area}" fill="url(#fg2)"/>
-    <path d="${invLine}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4" stroke-linejoin="round"/>
+    <path d="${invLine}" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="5 4"/>
     <path d="${valLine}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${lx}" cy="${ly}" r="3.6" fill="${color}"/>
-    <text x="${pad.l}" y="${h-7}" font-size="10" fill="var(--faint)" font-family="var(--num)">${fmtDate(series[0].date)}</text>
-    <text x="${w-pad.r}" y="${h-7}" font-size="10" fill="var(--faint)" text-anchor="end" font-family="var(--num)">${fmtDate(series[series.length-1].date)}</text>
+    <circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="3.4" fill="${color}"/>
   </svg>`;
 }
+function chartMove(e){
+  const host=e.target.closest && e.target.closest('.chart-host');
+  if(!host||!CHART){ document.querySelectorAll('.ctip,.cvline,.cdot').forEach(el=>el.style.display='none'); return; }
+  const svg=host.querySelector('svg'); if(!svg) return;
+  const r=svg.getBoundingClientRect(); if(!r.width) return;
+  const cx=(e.touches&&e.touches[0]?e.touches[0].clientX:e.clientX);
+  const vbX=(cx-r.left)/r.width*CHART.W;
+  let best=CHART.pts[0],bd=1e9; CHART.pts.forEach(p=>{const dd=Math.abs(p.x-vbX); if(dd<bd){bd=dd;best=p;}});
+  const px=best.x/CHART.W*r.width, py=best.y/CHART.H*r.height;
+  const tip=host.querySelector('.ctip'), vline=host.querySelector('.cvline'), dot=host.querySelector('.cdot');
+  const g=best.value-best.invested;
+  if(tip){ tip.style.display='block'; tip.innerHTML=`<div class="d">${fmtDate(best.date)}</div><div class="v">${fmt(best.value)}</div><div class="i">wpłacone ${fmt(best.invested)} · <span style="color:${g>=0?'var(--pos)':'var(--neg)'}">${g>=0?'+':''}${fmt(g)}</span></div>`;
+    const tw=tip.offsetWidth||150; const lx=Math.max(tw/2+4,Math.min(r.width-tw/2-4,px)); tip.style.left=lx+'px'; tip.style.top=Math.max(2,py)+'px'; }
+  if(vline){ vline.style.display='block'; vline.style.left=px+'px'; }
+  if(dot){ dot.style.display='block'; dot.style.left=px+'px'; dot.style.top=py+'px'; dot.style.background=CHART.color; }
+}
+document.addEventListener('pointermove',chartMove);
+document.addEventListener('pointerdown',chartMove);
+document.addEventListener('touchmove',chartMove,{passive:true});
 function chartBlock(key,color,title,sub){
   const s=filterRange(histOf(key));
   let stat=0;
   if(s.length>=2){ const a=s[0], b=s[s.length-1];
-    const pa=a.value-(a.invested==null?a.value:a.invested), pb=b.value-(b.invested==null?b.value:b.invested); stat=pb-pa; }
+    stat=(b.value-(b.invested==null?b.value:b.invested))-(a.value-(a.invested==null?a.value:a.invested)); }
   return `<div class="card">
-    <div class="card-head"><div><h3>${title}</h3><div class="sub">${sub}</div></div>
+    <div style="margin-bottom:12px"><h3>${title}</h3><div class="sub" style="margin-bottom:11px">${sub}</div>
       <div class="range-tabs">${RANGES.map(r=>`<button class="rt-btn ${r.k===chartRange?'on':''}" data-range="${r.k}">${r.l}</button>`).join('')}</div></div>
-    ${lineChart2(s,{color})}
+    <div class="chart-host">${buildChart(s,color)}<div class="cvline" style="display:none"></div><div class="cdot" style="display:none"></div><div class="ctip" style="display:none"></div></div>
     <div class="chart-legend"><span><i style="background:${color}"></i>Wartość</span><span><i class="dash"></i>Wpłacone</span>
       <span class="stat ${stat>=0?'pos':'neg'}">Zysk w tym zakresie: ${stat>=0?'+':''}${fmt(stat)}</span></div>
   </div>`;
