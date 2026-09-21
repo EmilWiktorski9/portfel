@@ -134,6 +134,9 @@
   .donut-c{position:relative;flex:none}
   .donut-c .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .donut-c .mid b{font-family:var(--num);font-size:16px;font-weight:600;letter-spacing:-.02em}
+  .dseg{transition:opacity .12s;cursor:pointer}
+  .donut-c.hovering .dseg{opacity:.28}
+  .donut-c.hovering .dseg.hi{opacity:1}
   .donut-c .mid span{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
   .legend{display:flex;flex-direction:column;gap:10px;font-size:13px;flex:1;min-width:140px}
   .legend .li{display:flex;align-items:center;gap:9px}
@@ -553,11 +556,23 @@ function lineChart(series,{w=560,h=190,color='var(--gold)'}={}){
 function donut(parts,size=150,thick=22){
   const total=parts.reduce((s,p)=>s+p.value,0)||1,r=(size-thick)/2,c=2*Math.PI*r;let off=0;
   const segs=parts.map(p=>{const len=p.value/total*c;
-    const s=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thick}"
+    const s=`<circle class="dseg" data-nm="${esc(p.name||'')}" data-val="${esc(fmt(p.value))}" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${p.color}" stroke-width="${thick}"
       stroke-dasharray="${len.toFixed(2)} ${(c-len).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}"
       transform="rotate(-90 ${size/2} ${size/2})"/>`;off+=len;return s;}).join('');
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--bg-2)" stroke-width="${thick}"/>${segs}</svg>`;
 }
+function donutHover(e){
+  const seg=e.target.closest && e.target.closest('.dseg');
+  const dc=seg?seg.closest('.donut-c'):null;
+  if(seg&&dc){ dc.classList.add('hovering'); dc.querySelectorAll('.dseg').forEach(s=>s.classList.toggle('hi',s===seg));
+    const mid=dc.querySelector('.mid'); if(mid){ mid.querySelector('b').textContent=seg.dataset.val; mid.querySelector('span').textContent=seg.dataset.nm; } return; }
+  // poza segmentem — przywróć środek
+  document.querySelectorAll('.donut-c.hovering').forEach(dc=>{ if(e.target.closest && e.target.closest('.donut-c')===dc) return;
+    dc.classList.remove('hovering'); dc.querySelectorAll('.dseg').forEach(s=>s.classList.remove('hi'));
+    const mid=dc.querySelector('.mid'); if(mid&&mid.dataset.defB!=null){ mid.querySelector('b').textContent=mid.dataset.defB; mid.querySelector('span').textContent=mid.dataset.defS; } });
+}
+document.addEventListener('pointermove',donutHover);
+document.addEventListener('pointerleave',e=>{ document.querySelectorAll('.donut-c.hovering').forEach(dc=>{ dc.classList.remove('hovering'); dc.querySelectorAll('.dseg').forEach(s=>s.classList.remove('hi')); const mid=dc.querySelector('.mid'); if(mid&&mid.dataset.defB!=null){ mid.querySelector('b').textContent=mid.dataset.defB; mid.querySelector('span').textContent=mid.dataset.defS; } }); },true);
 function spark(series,{w=110,h=34,color}={}){
   const s=series.map(p=>p.value); if(s.length<2) return `<svg width="${w}" height="${h}"></svg>`;
   const mn=Math.min(...s),mx=Math.max(...s),r=(mx-mn)||1;
@@ -566,7 +581,7 @@ function spark(series,{w=110,h=34,color}={}){
   return `<svg width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
-const RANGES=[{k:'1T',l:'1T',d:7},{k:'1M',l:'1M',d:31},{k:'3M',l:'3M',d:92},{k:'6M',l:'6M',d:183},{k:'1R',l:'1R',d:366},{k:'5L',l:'5L',d:1827},{k:'max',l:'Max',d:1e9}];
+const RANGES=[{k:'24h',l:'24h',d:1},{k:'1T',l:'1T',d:7},{k:'1M',l:'1M',d:31},{k:'3M',l:'3M',d:92},{k:'6M',l:'6M',d:183},{k:'1R',l:'1R',d:366},{k:'5L',l:'5L',d:1827},{k:'max',l:'Max',d:1e9}];
 let chartRange='max';
 const PLM=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
 function fmtTick(ms,spanDays){ const d=new Date(ms);
@@ -576,7 +591,8 @@ function filterRange(arr){
   if(chartRange==='max') return arr;
   const r=RANGES.find(x=>x.k===chartRange); const cut=Date.now()-r.d*864e5;
   const inWin=arr.filter(p=>+new Date(p.date)>=cut);
-  const before=arr.filter(p=>+new Date(p.date)<cut);
+  if(inWin.length>=2) return inWin;                    // wystarczy danych — pokaż dokładnie to okno
+  const before=arr.filter(p=>+new Date(p.date)<cut);   // za mało punktów — dołóż jeden sprzed okna
   const anchored=(before.length?[before[before.length-1]]:[]).concat(inWin);
   return anchored.length>=2?anchored:arr.slice(-2);
 }
@@ -735,7 +751,7 @@ function renderWealth(){
     <div class="card">
       <h3>Podział wg klas</h3><div class="sub">obecna struktura majątku</div>
       <div class="donut-wrap">
-        <div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid"><b>${fmtShort(t.value)}</b><span>Razem</span></div></div>
+        <div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid" data-def-b="${fmtShort(t.value)}" data-def-s="Razem"><b>${fmtShort(t.value)}</b><span>Razem</span></div></div>
         <div class="legend">${cats.slice(0,7).map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')||'<span class="sub">Brak aktywów.</span>'}</div>
       </div>
     </div>
@@ -774,7 +790,7 @@ function renderPortfolio(pfId){
     body=`<div class="grid g-2" style="margin-bottom:18px">
       ${chartBlock(pfId,p.color,'Wartość w czasie','wpłacone vs wartość · wybierz zakres')}
       <div class="card"><h3>Podział portfela</h3><div class="sub">wg klas aktywów</div>
-        <div class="donut-wrap"><div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid"><b>${fmtShort(t.value)}</b><span>${t.count} poz.</span></div></div>
+        <div class="donut-wrap"><div class="donut-c" style="width:150px;height:150px">${donut(cats)}<div class="mid" data-def-b="${fmtShort(t.value)}" data-def-s="${t.count} poz."><b>${fmtShort(t.value)}</b><span>${t.count} poz.</span></div></div>
           <div class="legend">${cats.slice(0,7).map(c=>`<div class="li"><span class="sw" style="background:${c.color}"></span><span class="nm">${esc(c.name)}</span><span class="vl">${c.pctNow.toFixed(0)}%</span></div>`).join('')}</div>
         </div></div></div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
@@ -921,7 +937,12 @@ function buildInstBody(type, pfId){
     <div class="frow">
       <div class="field"><label>Portfel</label><select id="i-pf">${pfOptions(pfId)}</select></div>
       <div class="field"><label>Klasa</label><select id="i-class">${classOptions(cls)}</select></div>
-    </div>`;
+    </div>
+    <div class="field"><label>Skąd środki?</label><select id="i-src">
+      <option value="">Nowa wpłata (z zewnątrz)</option>
+      ${DATA.instruments.filter(x=>x.mode==='manual'&&instValue(x)>0).map(x=>`<option value="${x.id}">Z: ${esc(x.name)} (${fmt(instValue(x))})</option>`).join('')}
+    </select>
+    <div class="hint-box" style="margin-top:6px;font-size:11.5px">Jeśli kupujesz za pieniądze, które już masz w apce (np. z „Gotówka – akcje"), wybierz je tutaj — apka sama je pomniejszy, żeby „Wpłacone" się nie zawyżało. „Nowa wpłata" wybierz tylko, gdy dokładasz świeże pieniądze z zewnątrz.</div></div>`;
   if(type==='reczne'){
     body.innerHTML=`
       <div class="field"><label>Nazwa</label><input id="i-name" placeholder="np. Mieszkanie Katowice, Działka, Gotówka"></div>
@@ -1121,6 +1142,12 @@ document.addEventListener('click',async e=>{
       if(!pick) return toast('Wyszukaj i wybierz walor z listy');
       DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name:pick.name,mode:'auto',provider:pick.provider,symbol:pick.symbol,exchange:pick.exchange||'',currency:pick.currency||'PLN',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
     }
+    // źródło środków: jeśli kupujesz z gotówki już w apce — pomniejsz ją, by "Wpłacone" się nie zawyżało
+    const srcId=document.getElementById('i-src')?.value;
+    if(srcId){ const src=DATA.instruments.find(x=>x.id===srcId);
+      if(src){ src.manualValue=Math.max(0,(src.manualValue||0)-inv); src.invested=Math.max(0,(src.invested||0)-inv);
+        if(!src.snapshots) src.snapshots=[]; const td=today(); const last=src.snapshots[src.snapshots.length-1];
+        if(last&&last.date===td){ last.value=src.manualValue; last.invested=src.invested; } else src.snapshots.push({date:td,value:src.manualValue,invested:src.invested}); } }
     await save(); closeModal(); view={screen:'pf',pfId:pf}; render(); toast('Dodano — odświeżam ceny'); refreshPrices(true);
     return;
   }
