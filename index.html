@@ -327,6 +327,8 @@ const IMPORTED_DATA = {"version":2,"settings":{"baseCurrency":"PLN","twelveKey":
 
 /* ---------- palette ---------- */
 const PALETTE = ['#C9A24B','#4FB07A','#5B8FD6','#B268C9','#E0655A','#3FA9A2','#D08A3E','#8AAE4C','#9B7BD9','#D95BA0','#5FA0C9','#C7B23E'];
+// mapowanie id CoinGecko → ticker (do awaryjnego pobierania ceny z Binance/Coinbase bez klucza)
+const COIN_TICKER={bitcoin:'BTC',ethereum:'ETH',solana:'SOL',cardano:'ADA',ripple:'XRP',polkadot:'DOT',dogecoin:'DOGE',litecoin:'LTC','binancecoin':'BNB','matic-network':'MATIC',chainlink:'LINK','avalanche-2':'AVAX',cosmos:'ATOM',tron:'TRX',stellar:'XLM','shiba-inu':'SHIB',uniswap:'UNI',aave:'AAVE',near:'NEAR',aptos:'APT',arbitrum:'ARB',optimism:'OP',injective:'INJ',sui:'SUI',render:'RENDER',fantom:'FTM',algorand:'ALGO',vechain:'VET',filecoin:'FIL',hedera:'HBAR',monero:'XMR','the-graph':'GRT',maker:'MKR',pepe:'PEPE'};
 
 /* ---------- format ---------- */
 const nf0 = new Intl.NumberFormat('pl-PL',{maximumFractionDigits:0});
@@ -419,16 +421,30 @@ async function refreshPrices(silent){
   const auto = DATA.instruments.filter(i=>i.mode==='auto');
   let ok=true;
   const problems=[];
-  // --- crypto (CoinGecko) ---
-  const geckoIds=[...new Set(auto.filter(i=>i.provider==='coingecko').map(i=>i.symbol))];
-  if(geckoIds.length){
+  // --- crypto: CoinGecko (PLN) → fallback Binance/Coinbase (USD, bez klucza) ---
+  const cg=auto.filter(i=>i.provider==='coingecko');
+  if(cg.length){
+    const geckoIds=[...new Set(cg.map(i=>i.symbol))];
     const key=DATA.settings.geckoKey?('&x_cg_demo_api_key='+encodeURIComponent(DATA.settings.geckoKey)):'';
     const j=await jget('https://api.coingecko.com/api/v3/simple/price?ids='+geckoIds.join(',')+'&vs_currencies=pln'+key);
     if(j && !j.__err && !j.status?.error_code){
-      let got=0;
-      auto.filter(i=>i.provider==='coingecko').forEach(i=>{ const p=j[i.symbol]?.pln; if(p){ i.lastPrice=p; i.lastCur='PLN'; i.lastAt=Date.now(); got++; } });
-      if(!got){ ok=false; problems.push('krypto (brak ceny)'); }
-    } else { ok=false; problems.push(DATA.settings.geckoKey?'krypto (CoinGecko)':'krypto — dodaj darmowy klucz CoinGecko'); }
+      cg.forEach(i=>{ const p=j[i.symbol]?.pln; if(p){ i.lastPrice=p; i.lastCur='PLN'; i.lastAt=Date.now(); } });
+    }
+    // dla pozycji, które nie dostały ceny z CoinGecko — spróbuj bez klucza z Binance, potem Coinbase (w USD)
+    const missing=cg.filter(i=>!i.lastAt || Date.now()-i.lastAt>3600e3);
+    let stillMissing=0;
+    for(const i of missing){
+      const tk=(i.ticker||COIN_TICKER[i.symbol]||'').toUpperCase();
+      let usd=null;
+      if(tk){
+        const b=await jget('https://api.binance.com/api/v3/ticker/price?symbol='+tk+'USDT');
+        if(b && !b.__err && b.price) usd=parseFloat(b.price);
+        if(usd==null){ const c=await jget('https://api.coinbase.com/v2/prices/'+tk+'-USD/spot'); const cp=c&&c.data&&c.data.amount; if(cp) usd=parseFloat(cp); }
+      }
+      if(usd!=null){ i.lastPrice=usd; i.lastCur='USD'; i.lastAt=Date.now(); }
+      else stillMissing++;
+    }
+    if(stillMissing){ ok=false; problems.push(DATA.settings.geckoKey?'krypto (CoinGecko)':'krypto — dodaj darmowy klucz CoinGecko'); }
   }
   // --- Twelve Data (akcje / metale / GPW) ---
   const td=auto.filter(i=>i.provider==='twelvedata');
@@ -1034,7 +1050,7 @@ async function searchCrypto(q){
     const key=DATA.settings.geckoKey?('&x_cg_demo_api_key='+encodeURIComponent(DATA.settings.geckoKey)):'';
     const r=await fetch('https://api.coingecko.com/api/v3/search?query='+encodeURIComponent(q)+key);
     const j=await r.json(); const coins=(j.coins||[]).slice(0,8);
-    box.innerHTML=`<div class="search-res">${coins.map(c=>`<div class="sr" data-pick='${esc(JSON.stringify({provider:'coingecko',symbol:c.id,name:c.name,currency:'PLN'}))}'>
+    box.innerHTML=`<div class="search-res">${coins.map(c=>`<div class="sr" data-pick='${esc(JSON.stringify({provider:'coingecko',symbol:c.id,name:c.name,currency:'PLN',ticker:(c.symbol||'').toUpperCase()}))}'>
       ${c.thumb?`<img src="${c.thumb}">`:''}<div><b>${esc(c.name)}</b> <span class="tk">${esc((c.symbol||'').toUpperCase())}</span></div></div>`).join('')||'<div class="sr">Brak wyników</div>'}</div>`;
   }catch(e){ box.innerHTML=`<div class="hint-box">Nie udało się wyszukać. Spróbuj ponownie.</div>`; }
 }
@@ -1228,7 +1244,7 @@ document.addEventListener('click',async e=>{
       DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name,mode:'auto',provider:'fx',symbol:cur,exchange:'',currency:cur,quantity:parseNum(document.getElementById('i-qty').value),invested:inv,lastPrice:1,lastCur:cur,lastAt:Date.now()});
     } else {
       if(!pick) return toast('Wyszukaj i wybierz walor z listy');
-      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name:pick.name,mode:'auto',provider:pick.provider,symbol:pick.symbol,exchange:pick.exchange||'',currency:pick.currency||'PLN',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
+      DATA.instruments.push({id:uid('i_'),portfolioId:pf,classId:cls,name:pick.name,mode:'auto',provider:pick.provider,symbol:pick.symbol,ticker:pick.ticker||'',exchange:pick.exchange||'',currency:pick.currency||'PLN',quantity:parseNum(document.getElementById('i-qty').value),invested:inv});
     }
     // źródło środków: jeśli kupujesz z gotówki już w apce — pomniejsz ją, by "Wpłacone" się nie zawyżało
     const srcId=document.getElementById('i-src')?.value;
